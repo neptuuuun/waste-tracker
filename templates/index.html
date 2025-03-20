@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تعقب النفايات البحرية</title>
+    
+    <!-- استيراد مكتبات Leaflet.js للخرائط -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    
+    <!-- تنسيق CSS -->
+    <style>
+        body {
+            font-family: "Tajawal", sans-serif;
+            background: linear-gradient(to bottom, #0077b6, #90e0ef);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            direction: rtl;
+        }
+        
+        h1 {
+            font-size: 26px;
+            margin-bottom: 10px;
+        }
+        
+        #map {
+            height: 500px;
+            width: 100%;
+            border-radius: 10px;
+            border: 3px solid white;
+        }
+
+        /* تنسيق النموذج */
+        .report-form {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            width: 50%;
+            margin: 20px auto;
+        }
+
+        input, textarea {
+            width: 90%;
+            padding: 10px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            text-align: right;
+        }
+
+        button {
+            background-color: #023e8a;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #0096c7;
+        }
+
+        /* زر رفع الصور بتصميم جذاب */
+        .file-input-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .file-input-label {
+            background-color: #0096c7;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            display: inline-block;
+        }
+
+        .file-input-label:hover {
+            background-color: #023e8a;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-name {
+            margin-top: 5px;
+            font-size: 14px;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🔵 تعقب النفايات البحرية 🔵</h1>
+    
+    <!-- خريطة تفاعلية -->
+    <div id="map"></div>
+    
+    <!-- نموذج إدخال البيانات -->
+    <div class="report-form">
+        <h2>🌊 أضف تقريرًا جديدًا عن التلوث 🌊</h2>
+        <p>📍 انقر على الخريطة لتحديد الموقع تلقائيًا.</p>
+        <button onclick="getLocation()">📍 استخدم موقعي الحالي</button>
+        <form id="reportForm" enctype="multipart/form-data">
+            <input type="text" id="latitude" name="latitude" placeholder="📍 خط العرض" readonly required><br>
+            <input type="text" id="longitude" name="longitude" placeholder="📍 خط الطول" readonly required><br>
+            <textarea id="description" name="description" placeholder="📝 وصف المشكلة" required></textarea><br>
+            
+            <!-- زر تحميل الصور الجديد -->
+            <div class="file-input-container">
+                <label for="image" class="file-input-label">📸 اختر صورة</label>
+                <input type="file" id="image" name="image" accept="image/*" class="file-input">
+                <span id="file-name" class="file-name">لم يتم اختيار صورة</span>
+            </div>
+
+            <button type="submit">إرسال التقرير</button>
+        </form>
+    </div>
+
+    <script>
+        var map = L.map('map').setView([36.75, 3.06], 6);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        function loadReports() {
+            fetch('/get_reports')
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(report => {
+                        var popupContent = `<b>الوصف:</b> ${report.description}`;
+                        if (report.image) {
+                            popupContent += `<br><img src="${report.image}" width="100" style="border-radius:10px;">`;
+                        }
+
+                        popupContent += `<br><button onclick="deleteReport(${report.id})" style="background-color: red; color: white; padding: 5px; border: none; border-radius: 5px; cursor: pointer;">🗑 حذف</button>`;
+
+
+                        L.marker([report.latitude, report.longitude])
+                            .addTo(map)
+                            .bindPopup(popupContent);
+                    });
+                });
+        }
+
+        loadReports();
+
+        var userMarker;
+
+        map.on('click', function(e) {
+            document.getElementById("latitude").value = e.latlng.lat;
+            document.getElementById("longitude").value = e.latlng.lng;
+
+            if (userMarker) {
+                map.removeLayer(userMarker);
+            }
+
+            userMarker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map)
+                .bindPopup("📍 موقع الإبلاغ المحدد")
+                .openPopup();
+        });
+
+        function getLocation() {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                document.getElementById("latitude").value = position.coords.latitude;
+                document.getElementById("longitude").value = position.coords.longitude;
+                map.setView([position.coords.latitude, position.coords.longitude], 13);
+            });
+        }
+
+        document.getElementById("reportForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            var formData = new FormData(this);
+        
+            fetch('/add_report', { method: 'POST', body: formData })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => { throw new Error(text); });
+                }
+                return response.json();
+            })
+            .then(data => { alert(data.message); location.reload(); })
+            .catch(error => alert("❌ خطأ: " + error.message));
+        });
+        
+
+        // تحديث اسم الملف عند اختيار صورة
+        document.getElementById("image").addEventListener("change", function() {
+            var fileName = this.files[0] ? this.files[0].name : "لم يتم اختيار صورة";
+            document.getElementById("file-name").textContent = fileName;
+        });
+
+        function deleteReport(reportId) {
+            fetch(`/delete_report/${reportId}`, {
+                method: "DELETE",
+            })
+            .then(response => response.json().then(data => ({ status: response.status, body: data })))
+            .then(result => {
+                if (result.status === 200) {
+                    alert("✅ تم حذف التقرير بنجاح!");
+                    location.reload();
+                } else if (result.status === 403) {
+                    alert("⚠️ لا يمكنك حذف تقرير لم تقم بكتابته!");
+                } else {
+                    alert("❌ خطأ: " + (result.body.error || "حدث خطأ أثناء حذف التقرير!"));
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("⚠️ حدث خطأ أثناء الاتصال بالخادم!");
+            });
+        }
+        
+            
+            
+        
+    </script>
+
+</body>
+</html>
