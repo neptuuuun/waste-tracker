@@ -1,0 +1,157 @@
+
+body {
+    font-family: "Tajawal", sans-serif;
+    background: linear-gradient(to bottom, #0077b6, #90e0ef);
+    color: white;
+    text-align: center;
+    padding: 20px;
+    direction: rtl;
+}
+
+h1 {
+    font-size: 26px;
+    margin-bottom: 10px;
+}
+
+#map {
+    height: 500px;
+    width: 100%;
+    border-radius: 10px;
+    border: 3px solid white;
+}
+
+/* تنسيق النموذج */
+.report-form {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 15px;
+    border-radius: 10px;
+    width: 50%;
+    margin: 20px auto;
+}
+
+input, textarea {
+    width: 90%;
+    padding: 10px;
+    margin: 5px 0;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    text-align: right;
+}
+
+button {
+    background-color: #023e8a;
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+    font-size: 16px;
+}
+
+button:hover {
+    background-color: #0096c7;
+}
+
+/* زر رفع الصور بتصميم جذاب */
+.file-input-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 10px 0;
+}
+
+.file-input-label {
+    background-color: #0096c7;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    display: inline-block;
+}
+
+.file-input-label:hover {
+    background-color: #023e8a;
+}
+
+.file-input {
+    display: none;
+}
+
+
+.preview-container {
+    margin-top: 10px;
+    position: relative;
+    display: none;
+}
+
+.preview-item {
+    position: relative;
+    display: inline-block;
+    margin: 5px;
+}
+
+.preview-image {
+    max-width: 100px;
+    max-height: 100px;
+    border-radius: 10px;
+    border: 2px solid white;
+    cursor: pointer;
+}
+
+.remove-image {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: red;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.popup-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.popup-image {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 10px;
+}
+
+.popup-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: red;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    z-index: 1100;
+}
+
+
+
+.file-name {
+    margin-top: 5px;
+    font-size: 14px;
+    color: #fff;
+}
