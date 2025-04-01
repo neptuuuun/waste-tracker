@@ -655,6 +655,14 @@
     }
 }
 
-#severity,#pollutionType,#timeFilter,#severityFilter,#pollutionFilter{
-  color:#023047;
+#severity, #pollutionType, #timeFilter, #severityFilter, #pollutionFilter {
+  color: var(--text-on-dark);
+  background-color: var(--glass-bg);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Add styles for option elements */
+#severity option, #pollutionType option, #timeFilter option, #severityFilter option, #pollutionFilter option {
+  background-color: var(--primary-dark);
+  color: var(--text-on-dark);
 }
