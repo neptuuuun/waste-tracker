@@ -10,43 +10,159 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     
+    <!-- إضافة Font Awesome للأيقونات -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- إضافة مكتبة SweetAlert2 للتنبيهات الجميلة -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
+    <header>
+        <h1><i class="fas fa-water"></i> تعقب النفايات البحرية <i class="fas fa-water"></i></h1>
+        <p class="subtitle">نحو بحار نظيفة ومستدامة</p>
+    </header>
 
-    <h1>🔵 تعقب النفايات البحرية 🔵</h1>
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-    <!-- خريطة تفاعلية -->
-    <div id="map"></div>
-    
-    <!-- نموذج إدخال البيانات -->
-    <div class="report-form">
-        <h2>🌊 أضف تقريرًا جديدًا عن التلوث 🌊</h2>
-        <p>📍 انقر على الخريطة لتحديد الموقع تلقائيًا.</p>
-        <button onclick="getLocation()">📍 استخدم موقعي الحالي</button>
-        <form id="reportForm" enctype="multipart/form-data">
-            <input type="text" id="latitude" name="latitude" placeholder="📍 خط العرض" readonly required><br>
-            <input type="text" id="longitude" name="longitude" placeholder="📍 خط الطول" readonly required><br>
-            <textarea id="description" name="description" placeholder="📝 وصف المشكلة" required></textarea><br>
-            
-            <!-- زر تحميل الصور الجديد -->
-            <div class="file-input-container">
-                <label for="images" class="file-input-label">📸 اختر صور</label>
-                <input type="file" id="images" name="images" accept="image/*" class="file-input" multiple>
-                <span id="file-name" class="file-name">لم يتم اختيار صورة</span>
-                <div id="preview-container" class="preview-container">
-                    <img id="preview-image" class="preview-image">
-                    <button id="remove-image" class="remove-image">❌</button>
-                </div>
+    <main>
+        <!-- خريطة تفاعلية -->
+        <div id="map-container">
+            <div id="map"></div>
+            <div id="map-controls">
+                <button onclick="mapFunctions.getLocation()" class="map-control-btn" data-action="get-location">
+                    <i class="fas fa-location-dot"></i> تحديد موقعي
+                </button>
+                <button onclick="mapFunctions.resetMapView()" class="map-control-btn">
+                    <i class="fas fa-arrows-rotate"></i> إعادة تعيين
+                </button>
+                <button onclick="statisticsFunctions.showStatistics()" class="map-control-btn">
+                    <i class="fas fa-chart-bar"></i> إحصائيات
+                </button>
             </div>
+            
+            <!-- فلاتر -->
+            <div class="filters">
+                <select id="pollutionFilter" onchange="applyFilters()">
+                    <option value="">كل أنواع التلوث</option>
+                    <option value="plastic">بلاستيك</option>
+                    <option value="oil">نفط</option>
+                    <option value="chemical">مواد كيميائية</option>
+                    <option value="other">أخرى</option>
+                </select>
+                
+                <select id="severityFilter" onchange="applyFilters()">
+                    <option value="">كل مستويات الخطورة</option>
+                    <option value="low">منخفض</option>
+                    <option value="medium">متوسط</option>
+                    <option value="high">مرتفع</option>
+                </select>
+                
+                <select id="timeFilter" onchange="applyFilters()">
+                    <option value="">كل الفترات</option>
+                    <option value="7">آخر 7 أيام</option>
+                    <option value="30">آخر 30 يوم</option>
+                    <option value="90">آخر 3 أشهر</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- نموذج إدخال البيانات -->
+        <div class="report-form">
+            <h2><i class="fas fa-plus-circle"></i> أضف تقريرًا جديدًا عن التلوث</h2>
+            <p class="form-instructions">📍 انقر على الخريطة لتحديد الموقع تلقائيًا</p>
+            
+            <form id="reportForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="latitude">خط العرض</label>
+                    <input type="text" id="latitude" name="latitude" placeholder="سيتم ملؤه تلقائياً" readonly required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="longitude">خط الطول</label>
+                    <input type="text" id="longitude" name="longitude" placeholder="سيتم ملؤه تلقائياً" readonly required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">وصف المشكلة</label>
+                    <textarea id="description" name="description" placeholder="أدخل وصفاً تفصيلياً للمشكلة..." required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pollutionType">نوع التلوث</label>
+                    <select id="pollutionType" name="pollutionType" required>
+                        <option value="">اختر نوع التلوث</option>
+                        <option value="plastic">بلاستيك</option>
+                        <option value="oil">نفط</option>
+                        <option value="chemical">مواد كيميائية</option>
+                        <option value="other">أخرى</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="severity">مستوى الخطورة</label>
+                    <select id="severity" name="severity" required>
+                        <option value="low">منخفض</option>
+                        <option value="medium" selected>متوسط</option>
+                        <option value="high">مرتفع</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="images" class="file-input-label">
+                        <i class="fas fa-camera"></i> اختر صور
+                    </label>
+                    <input type="file" id="images" name="images" accept="image/*" class="file-input" multiple>
+                    <span id="file-name" class="file-name">لم يتم اختيار صورة</span>
+                    <div id="preview-container" class="preview-container"></div>
+                </div>
 
-            <button type="submit">إرسال التقرير</button>
+                <button type="submit" class="submit-btn">
+                    <i class="fas fa-paper-plane"></i> إرسال التقرير
+                </button>
+            </form>
+        </div>
+    </main>
 
-        </form>
-    </div>
-        <!-- نافذة تكبير الصورة (Lightbox) -->
+    <!-- نافذة تكبير الصورة -->
     <div id="popupOverlay" class="popup-overlay">
-        <button class="popup-close" onclick="closePopup()">❌ إغلاق</button>
-        <img id="popupImage" class="popup-image" src="">
+        <button class="popup-close" onclick="closePopup()">
+            <i class="fas fa-times"></i> إغلاق
+        </button>
+        <img id="popupImage" class="popup-image" src="" alt="صورة مكبرة">
     </div>
+
+    <!-- مؤشر التحميل -->
+    <div id="loading-indicator" class="loading-indicator" style="display: none;">
+        <div class="spinner"></div>
+        <p>جاري التحميل...</p>
+    </div>
+
+    <!-- قسم التوعية -->
+    <div class="awareness-section">
+        <h2><i class="fas fa-lightbulb"></i> التوعية البيئية</h2>
+        <div class="awareness-grid">
+            <div class="awareness-card">
+                <i class="fas fa-trash-alt"></i>
+                <h3>تأثير النفايات البحرية</h3>
+                <p>تؤثر النفايات البحرية سلباً على الحياة البحرية والنظام البيئي بأكمله. يموت الآلاف من الكائنات البحرية سنوياً بسبب ابتلاع البلاستيك.</p>
+            </div>
+            <div class="awareness-card">
+                <i class="fas fa-recycle"></i>
+                <h3>كيف تساعد؟</h3>
+                <p>قلل من استخدام البلاستيك، أعد التدوير، شارك في حملات تنظيف الشواطئ، وأبلغ عن التلوث البحري عند مشاهدته.</p>
+            </div>
+            <div class="awareness-card">
+                <i class="fas fa-hand-holding-water"></i>
+                <h3>حماية البيئة البحرية</h3>
+                <p>البحار والمحيطات هي مصدر الحياة على الأرض. حمايتها مسؤولية مشتركة للحفاظ على مستقبل مستدام.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>جميع الحقوق محفوظة &copy; 2025</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
+
+

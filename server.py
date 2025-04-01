@@ -2,16 +2,27 @@ from flask import Flask, render_template, request, jsonify, session, send_from_d
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 import os
+import datetime
 
 app = Flask(__name__)
 app.secret_key = "your_secret_key"  # ✅ ضروري لتفعيل الجلسات
 
-# تحديد مكان تخزين الصور
-UPLOAD_FOLDER = 'static/uploads'
+# تحديد مكان تخزين الصور والملفات
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///reports.db'
+# Delete old database if it exists
+db_path = os.path.join(BASE_DIR, 'reports.db')
+if os.path.exists(db_path):
+    try:
+        os.remove(db_path)
+        print(f"Old database deleted successfully: {db_path}")
+    except Exception as e:
+        print(f"Error deleting old database: {e}")
+
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -25,15 +36,19 @@ class Report(db.Model):
     description = db.Column(db.String(255), nullable=False)
     user_ip = db.Column(db.String(50), nullable=False)
     images = db.relationship('ReportImage', backref='report', lazy=True)  # Ensure this is correct
+    severity = db.Column(db.String(20), nullable=False, default='medium')  # new
+    pollution_type = db.Column(db.String(50), nullable=True)  # new
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)  # new
 
 class ReportImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     report_id = db.Column(db.Integer, db.ForeignKey('report.id'), nullable=False)
     image_path = db.Column(db.String(255), nullable=False) # علاقة one-to-many
 
-# إنشاء قاعدة البيانات إذا لم تكن موجودة
+# Create the database
 with app.app_context():
     db.create_all()
+    print("Database created successfully with new schema")
 
 # الصفحة الرئيسية
 @app.route('/')
@@ -42,21 +57,30 @@ def index():
 
 @app.route('/add_report', methods=['POST'])
 def add_report():
-    latitude = request.form.get('latitude')
-    longitude = request.form.get('longitude')
-    description = request.form.get('description')
-    images = request.files.getlist('images')  # الحصول على قائمة بالصور
-
-    if not latitude or not longitude or not description:
-        return jsonify({"error": "جميع الحقول مطلوبة"}), 400
-
-    user_ip = request.remote_addr
-
     try:
+        latitude = request.form.get('latitude')
+        longitude = request.form.get('longitude')
+        description = request.form.get('description')
+        severity = request.form.get('severity', 'medium')
+        pollution_type = request.form.get('pollutionType')
+        images = request.files.getlist('images')
+
+        if not all([latitude, longitude, description]):
+            return jsonify({"error": "جميع الحقول مطلوبة"}), 400
+
+        user_ip = request.remote_addr
+
         # إنشاء تقرير جديد
-        new_report = Report(latitude=float(latitude), longitude=float(longitude), description=description, user_ip=user_ip)
+        new_report = Report(
+            latitude=float(latitude),
+            longitude=float(longitude),
+            description=description,
+            user_ip=user_ip,
+            severity=severity,
+            pollution_type=pollution_type or 'other'  # Default to 'other' if not provided
+        )
         db.session.add(new_report)
-        db.session.commit()  # حفظ التقرير أولًا
+        db.session.commit()
 
         # استقبال الصور المتعددة
         image_filenames = set()
@@ -74,7 +98,7 @@ def add_report():
                 db.session.add(new_image)
                 image_filenames.add(image_filename)
 
-        db.session.commit()  # حفظ الصور بعد إضافتها
+        db.session.commit()
 
         # إضافة التقرير إلى الجلسة
         if 'my_reports' not in session:
@@ -85,8 +109,9 @@ def add_report():
         return jsonify({"message": "تمت إضافة التقرير بنجاح"}), 201
 
     except Exception as e:
+        print(f"Error in add_report: {str(e)}")
         db.session.rollback()
-        return jsonify({"error": f"حدث خطأ أثناء حفظ التقرير: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/static/uploads/<path:filename>')
@@ -97,16 +122,67 @@ def uploaded_file(filename):
 # API لجلب جميع التقارير
 @app.route('/get_reports', methods=['GET'])
 def get_reports():
-    reports = Report.query.all()
-    return jsonify([{
-        'id': r.id,
-        'latitude': r.latitude,
-        'longitude': r.longitude,
-        'description': r.description,
-        'images': [{'image_path': img.image_path} for img in set(r.images)]  # إرجاع قائمة بالصور
-    } for r in reports])
+    try:
+        # Get filter parameters
+        pollution_type = request.args.get('pollution_type')
+        severity = request.args.get('severity')
+        days = request.args.get('days')
 
+        query = Report.query
 
+        if pollution_type:
+            query = query.filter_by(pollution_type=pollution_type)
+        if severity:
+            query = query.filter_by(severity=severity)
+        if days:
+            cutoff_date = datetime.datetime.now() - datetime.timedelta(days=int(days))
+            query = query.filter(Report.timestamp >= cutoff_date)
+
+        reports = query.all()
+        return jsonify([{
+            'id': r.id,
+            'latitude': r.latitude,
+            'longitude': r.longitude,
+            'description': r.description,
+            'severity': r.severity,
+            'pollution_type': r.pollution_type,
+            'timestamp': r.timestamp.isoformat() if r.timestamp else None,
+            'images': [{'image_path': img.image_path} for img in set(r.images)]
+        } for r in reports])
+    except Exception as e:
+        print(f"Error in get_reports: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/statistics', methods=['GET'])
+def get_statistics():
+    total_reports = Report.query.count()
+    
+    # Pollution type distribution
+    pollution_types = db.session.query(
+        Report.pollution_type,
+        db.func.count(Report.id)
+    ).group_by(Report.pollution_type).all()
+    
+    # Severity distribution
+    severity_counts = db.session.query(
+        Report.severity,
+        db.func.count(Report.id)
+    ).group_by(Report.severity).all()
+    
+    # Reports over time (last 30 days)
+    thirty_days_ago = datetime.datetime.now() - datetime.timedelta(days=30)
+    daily_reports = db.session.query(
+        db.func.date(Report.timestamp),
+        db.func.count(Report.id)
+    ).filter(Report.timestamp >= thirty_days_ago)\
+     .group_by(db.func.date(Report.timestamp)).all()
+
+    return jsonify({
+        'total_reports': total_reports,
+        'pollution_types': dict(pollution_types),
+        'severity_distribution': dict(severity_counts),
+        'daily_reports': {str(date): count for date, count in daily_reports}
+    })
 
 @app.route('/delete_report/<int:report_id>', methods=['DELETE'])
 def delete_report(report_id):
@@ -137,9 +213,5 @@ def delete_report(report_id):
         return jsonify({"error": f"❌ حدث خطأ أثناء حذف التقرير: {str(e)}"}), 500
 
 
-with app.app_context():
-    db.create_all()
-
 if __name__ == '__main__':
     app.run(debug=True)
-        
