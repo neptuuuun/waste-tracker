@@ -654,3 +654,7 @@
         padding: var(--space-md);
     }
 }
+
+#severity,#pollutionType,#timeFilter,#severityFilter,#pollutionFilter{
+  color:#023047;
+}

@@ -211,6 +211,12 @@ class Config {
     constructor(stateManager, utils) {
       this.state = stateManager;
       this.utils = utils;
+      this.markerColors = {
+        'plastic': 'red',
+        'oil': 'black',
+        'chemical': 'purple',
+        'other': 'gray'
+      };
     }
   
     async loadReports() {
@@ -232,7 +238,19 @@ class Config {
             return;
           }
   
-          const marker = L.marker([report.latitude, report.longitude])
+          // Create custom icon with pollution type color
+          const markerIcon = L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="background-color: ${this.markerColors[report.pollutionType] || this.markerColors.other}; 
+                                   width: 20px; 
+                                   height: 20px; 
+                                   border-radius: 50%; 
+                                   border: 2px solid white;
+                                   box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>`,
+            iconSize: [20, 20]
+          });
+  
+          const marker = L.marker([report.latitude, report.longitude], { icon: markerIcon })
             .addTo(this.state.map)
             .bindPopup(this.createReportPopup(report));
           
@@ -481,80 +499,159 @@ class Config {
       });
     }
   }
-  
-  /**
-   * Application Main Class
-   */
-  class PollutionReporterApp {
-    constructor() {
-      this.state = new StateManager();
-      this.utils = new Utils(this.state);
-      this.mapManager = new MapManager(this.state, this.utils);
-      this.reportManager = new ReportManager(this.state, this.utils);
-      this.imageManager = new ImageManager(this.state, this.utils);
-      this.formManager = new FormManager(this.state, this.utils);
-      this.geoManager = new GeolocationManager(this.state, this.utils, this.mapManager);
-      
-      this.init();
-    }
-  
-    init() {
-      // Initialize map when DOM is loaded
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => this.setupEventListeners());
-      } else {
-        this.setupEventListeners();
-      }
-    }
-  
-    setupEventListeners() {
-      // Initialize map and load reports
-      this.mapManager.initializeMap();
-      this.reportManager.loadReports();
-  
-      // Set up event delegation for the entire app
-      document.addEventListener('click', this.handleDocumentClick.bind(this));
-      
-      // Form submission
-      const reportForm = document.getElementById("reportForm");
-      if (reportForm) {
-        reportForm.addEventListener("submit", (e) => this.formManager.handleSubmit(e));
-      }
-  
-      // Image handling
-      const imagesInput = document.getElementById("images");
-      if (imagesInput) {
-        imagesInput.addEventListener("change", (e) => this.imageManager.handleImageSelect(e));
-      }
-  
-      // Popup handling
-      const popupOverlay = document.getElementById("popupOverlay");
-      if (popupOverlay) {
-        popupOverlay.addEventListener("click", (e) => {
-          if (e.target === popupOverlay) {
-            this.imageManager.closePopup();
-          }
-        });
-      }
-    }
-  
-    handleDocumentClick(event) {
-      // Use event delegation to handle clicks throughout the app
-      const target = event.target;
-      
-      // Handle location button click
-      if (target.closest('[data-action="get-location"]')) {
-        event.preventDefault();
-        this.geoManager.getLocation();
-      }
-      
-      // Add other global click handlers here as needed
+
+// Statistics Manager Class
+class StatisticsManager {
+  constructor(utils) {
+    this.utils = utils;
+  }
+
+  async showStatistics() {
+    try {
+      this.utils.showLoading();
+      const response = await fetch('/statistics');
+      const data = await response.json();
+
+      await Swal.fire({
+        title: 'إحصائيات',
+        html: `
+          <div class="statistics-content">
+            <h3>إحصائيات التقارير</h3>
+            <p>إجمالي التقارير: ${data.total_reports}</p>
+            
+            <h4>توزيع أنواع التلوث:</h4>
+            <ul>
+              ${Object.entries(data.pollution_types).map(([type, count]) => `
+                <li>${this.translatePollutionType(type)}: ${count}</li>
+              `).join('')}
+            </ul>
+
+            <h4>توزيع مستويات الخطورة:</h4>
+            <ul>
+              ${Object.entries(data.severity_distribution).map(([severity, count]) => `
+                <li>${this.translateSeverity(severity)}: ${count}</li>
+              `).join('')}
+            </ul>
+          </div>
+        `,
+        icon: 'info',
+        confirmButtonText: 'حسناً',
+        confirmButtonColor: '#0096c7'
+      });
+    } catch (error) {
+      console.error('Error fetching statistics:', error);
+      this.utils.showAlert('خطأ', 'فشل في تحميل الإحصائيات', 'error');
+    } finally {
+      this.utils.hideLoading();
     }
   }
-  
-  // Initialize the application
-  const app = new PollutionReporterApp();
-  
+
+  translatePollutionType(type) {
+    const types = {
+      'plastic': 'بلاستيك',
+      'oil': 'نفط',
+      'chemical': 'مواد كيميائية',
+      'other': 'أخرى'
+    };
+    return types[type] || type;
+  }
+
+  translateSeverity(severity) {
+    const severities = {
+      'low': 'منخفض',
+      'medium': 'متوسط',
+      'high': 'مرتفع'
+    };
+    return severities[severity] || severity;
+  }
+}
+
+// ... existing PollutionReporterApp class ...
+
+class PollutionReporterApp {
+  constructor() {
+    this.state = new StateManager();
+    this.utils = new Utils(this.state);
+    this.mapManager = new MapManager(this.state, this.utils);
+    this.reportManager = new ReportManager(this.state, this.utils);
+    this.imageManager = new ImageManager(this.state, this.utils);
+    this.formManager = new FormManager(this.state, this.utils);
+    this.geoManager = new GeolocationManager(this.state, this.utils, this.mapManager);
+    this.statsManager = new StatisticsManager(this.utils); // Add this line
+    
+    this.init();
+  }
+  init() {
+    // Initialize map when DOM is loaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => this.setupEventListeners());
+    } else {
+      this.setupEventListeners();
+    }
+  }
+
+  setupEventListeners() {
+    // Initialize map and load reports
+    this.mapManager.initializeMap();
+    this.reportManager.loadReports();
+
+    // Set up event delegation for the entire app
+    document.addEventListener('click', this.handleDocumentClick.bind(this));
+    
+    // Form submission
+    const reportForm = document.getElementById("reportForm");
+    if (reportForm) {
+      reportForm.addEventListener("submit", (e) => this.formManager.handleSubmit(e));
+    }
+
+    // Image handling
+    const imagesInput = document.getElementById("images");
+    if (imagesInput) {
+      imagesInput.addEventListener("change", (e) => this.imageManager.handleImageSelect(e));
+    }
+
+    // Popup handling
+    const popupOverlay = document.getElementById("popupOverlay");
+    if (popupOverlay) {
+      popupOverlay.addEventListener("click", (e) => {
+        if (e.target === popupOverlay) {
+          this.imageManager.closePopup();
+        }
+      });
+    }
+  }
+
+  handleDocumentClick(event) {
+    // Use event delegation to handle clicks throughout the app
+    const target = event.target;
+    
+    // Handle location button click
+    if (target.closest('[data-action="get-location"]')) {
+      event.preventDefault();
+      this.geoManager.getLocation();
+    }
+    
+    // Add other global click handlers here as needed
+  }
+}
+
+// Initialize the application
+const app = new PollutionReporterApp();
+
+// Expose app to global scope
+window.app = app;
+
+// Expose map functions to global scope
+window.mapFunctions = {
+  getLocation: app.geoManager.getLocation.bind(app.geoManager),
+  resetMapView: app.mapManager.resetMapView.bind(app.mapManager)
+};
+
+// Add this line to expose statistics functions
+window.statisticsFunctions = {
+  showStatistics: app.statsManager.showStatistics.bind(app.statsManager)
+};
+
   // Expose app to global scope for popup functions
   window.app = app;
   
