@@ -13,8 +13,20 @@ app.secret_key = "your_secret_key"  # ✅ ضروري لتفعيل الجلسات
 app.config['BABEL_DEFAULT_LOCALE'] = 'ar'
 app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations'
 app.config['LANGUAGES'] = ['ar', 'en']
-babel = Babel(app)
+def get_locale():
+    # 1. Check session
+    if 'lang' in session:
+        return session['lang']
+    # 2. Check browser Accept-Language
+    accept_languages = request.accept_languages.best_match(app.config['LANGUAGES'])
+    if accept_languages:
+        return accept_languages
+    # 3. Default fallback
+    return 'ar'
+
+babel = Babel(app, locale_selector=get_locale)
 print(f"babel object type: {type(babel)}")
+
 
 # تحديد مكان تخزين الصور والملفات
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -36,17 +48,6 @@ from flask import g
 from flask_babel import get_locale
 import user_agents
 
-@babel.localeselector
-def get_locale():
-    # 1. Check session
-    if 'lang' in session:
-        return session['lang']
-    # 2. Check browser Accept-Language
-    accept_languages = request.accept_languages.best_match(app.config['LANGUAGES'])
-    if accept_languages:
-        return accept_languages
-    # 3. Default fallback
-    return 'ar'
 
 # Context processor to make get_locale available in templates
 @app.context_processor
