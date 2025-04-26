@@ -8,6 +8,8 @@ import datetime
 
 app = Flask(__name__)
 app.secret_key = "your_secret_key"  # ✅ ضروري لتفعيل الجلسات
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = False
 
 # Flask-Babel configuration
 app.config['BABEL_DEFAULT_LOCALE'] = 'ar'
@@ -59,6 +61,9 @@ def set_language(lang_code):
     if lang_code not in app.config['LANGUAGES']:
         lang_code = 'ar'
     session['lang'] = lang_code
+    print('Language set to:', session.get('lang'))
+    next_url = request.args.get('next')
+    return redirect(next_url or url_for('index'))
     next_url = request.args.get('next') or url_for('index')
     return redirect(next_url)
 
@@ -93,6 +98,8 @@ with app.app_context():
 # الصفحة الرئيسية
 @app.route('/')
 def index():
+    print('Session lang:', session.get('lang'))
+    print('get_locale() returns:', get_locale())
     return render_template('index.html')
 
 @app.route('/add_report', methods=['POST'])
@@ -151,7 +158,7 @@ def add_report():
     except Exception as e:
         print(f"Error in add_report: {str(e)}")
         db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": _(u"An error occurred while adding the report: ") + str(e)}), 500
 
 
 @app.route('/static/uploads/<path:filename>')
@@ -193,7 +200,7 @@ def get_reports():
         } for r in reports])
     except Exception as e:
         print(f"Error in get_reports: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": _(u"An error occurred while fetching reports: ") + str(e)}), 500
 
 @app.route('/statistics', methods=['GET'])
 def get_statistics():
@@ -229,7 +236,7 @@ def get_statistics():
 @app.route('/delete_report/<int:report_id>', methods=['DELETE'])
 def delete_report(report_id):
     if 'my_reports' not in session or report_id not in session['my_reports']:
-        return jsonify({"error": _(u"⚠️ You cannot delete a report you did not submit!")}), 403  
+        return jsonify({"error": _(u"You cannot delete a report you did not submit!")}), 403  
 
     report = Report.query.get(report_id)
     if not report:
@@ -250,9 +257,9 @@ def delete_report(report_id):
         session['my_reports'].remove(report_id)  
         session.modified = True
 
-        return jsonify({"message": _(u"✅ Report deleted successfully!")}), 200
+        return jsonify({"message": _(u"Report deleted successfully!")}), 200
     except Exception as e:
-        return jsonify({"error": _(u"❌ An error occurred while deleting the report: ") + str(e)}), 500
+        return jsonify({"error": _(u"An error occurred while deleting the report: ") + str(e)}), 500
 
 
 if __name__ == '__main__':

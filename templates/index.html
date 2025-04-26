@@ -22,18 +22,17 @@
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
                 <div style="display: flex; align-items: center; gap: 10px;">
-    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" style="height: 48px; width: 48px;">
-    <span style="font-size: 2rem; font-weight: bold;">تعقب النفايات</span>
+    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" style="height: 80px; width: 80px;">
+    <span style="font-size: 2rem; font-weight: bold;">{{ _('Marine Waste Tracker') }}</span>
 </div>
 <p class="subtitle">{{ _('Towards clean and sustainable seas') }}</p>
             </div>
             <!-- Language switcher: handled by JS, no action needed -->
-<form method="get" id="lang-switcher-form">
-                <select name="lang" onchange="window.location.href='/set_language/' + this.value + '?next=' + encodeURIComponent(window.location.pathname)", style="margin: 10px;">
-                    <option value="ar" {% if get_locale() == 'ar' %}selected{% endif %}>العربية</option>
-                    <option value="en" {% if get_locale() == 'en' %}selected{% endif %}>English</option>
-                </select>
-            </form>
+<select name="lang" onchange="window.location.href='/set_language/' + this.value + '?next=' + encodeURIComponent(window.location.pathname); return false;" style="margin: 4px; font-size: 0.85em; width: 180px; padding: 3px 8px; border-radius: 5px;">
+    <option value="" disabled {% if get_locale() not in ['ar', 'en'] %}selected{% endif %}>{{ _('Select Language') }}</option>
+    <option value="ar" {% if get_locale() == 'ar' %}selected{% endif %}>{{ _('Arabic') }}</option>
+    <option value="en" {% if get_locale() == 'en' %}selected{% endif %}>{{ _('English') }}</option>
+</select>
         </div>
     </header>
 
