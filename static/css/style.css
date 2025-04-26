@@ -131,6 +131,19 @@
     padding: var(--space-sm);
   }
   
+  @media (max-width: 768px) {
+    #map-controls {
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    
+    .map-control-btn {
+      width: 100%;
+      max-width: 250px;
+    }
+  }
+  
   .map-control-btn {
     background: var(--glass-bg);
     backdrop-filter: blur(10px);
@@ -463,64 +476,119 @@
   }
   
   /* Responsive design improvements */
-  @media (max-width: 768px) {
-    body {
-        padding: var(--space-md);
-    }
-    
-    #map-controls {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .map-control-btn {
-        width: 100%;
-    }
-    
-    .filters {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .filters select {
-        width: 100%;
-        max-width: none;
-    }
-    
-    .report-form {
-        width: 100%;
-        padding: var(--space-lg);
-    }
+  /* Mobile responsive styles */
+@media (max-width: 768px) {
+  body {
+    padding: var(--space-sm);
   }
   
+  header {
+    padding: var(--space-sm);
+  }
+  
+  header div {
+    flex-direction: column;
+  }
+  
+  select[name="lang"] {
+    margin-top: var(--space-md);
+    width: 100%;
+    max-width: 250px;
+  }
+  
+  #map {
+    height: 50vh;
+  }
+  
+  #map-controls {
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+  
+  .map-control-btn {
+    width: 100%;
+    max-width: 250px;
+  }
+  
+  .filters {
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+  
+  .filters select {
+    width: 100%;
+    max-width: 250px;
+  }
+  
+  .report-form {
+    width: 100%;
+    padding: var(--space-md);
+  }
+  
+  .awareness-grid {
+    grid-template-columns: 1fr;
+  }
+}
+  
   @media (max-width: 480px) {
-    h1 {
-        font-size: var(--font-size-lg);
+    /* Header adjustments */
+    header div[style*="display: flex"] {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
     }
     
-    button, .file-input-label {
-        padding: 10px 15px;
+    header div[style*="display: flex"] div[style*="display: flex"] {
+        flex-direction: column;
+        align-items: center;
     }
     
+    .subtitle {
+        font-size: var(--font-size-md);
+        margin-top: var(--space-xs);
+    }
+    
+    /* Map and controls */
     #map {
         height: 40vh;
     }
     
-    .filters {
-        top: var(--space-xs);
-        right: var(--space-xs);
+    .map-control-btn {
+        font-size: var(--font-size-sm);
+        padding: 10px 16px;
+        min-width: 120px;
     }
     
-    .filters select {
-        width: 150px;
+    /* Form adjustments */
+    .report-form {
+        padding: var(--space-sm);
     }
     
-    .popup-close {
-        top: var(--space-sm);
-        right: var(--space-sm);
-        padding: 8px 12px;
+    .form-group {
+        margin-bottom: var(--space-sm);
     }
-  }
+    
+    input, textarea, select {
+        padding: 10px;
+    }
+    
+    /* Awareness section */
+    .awareness-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .awareness-card {
+        padding: var(--space-md);
+    }
+    
+    /* Image popup */
+    .popup-image {
+        max-width: 90%;
+        max-height: 70vh;
+    }
+}
   
   /* Accessibility improvements */
   @media (prefers-reduced-motion: reduce) {
