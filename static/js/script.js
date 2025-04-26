@@ -85,7 +85,70 @@ class Config {
   class Utils {
     constructor(stateManager) {
       this.state = stateManager;
+      // Detect language from <html lang>
+      this.lang = document.documentElement.lang || 'ar';
+      // Translation dictionary
+      this.translations = {
+        ar: {
+          ok: 'حسناً',
+          error: 'خطأ',
+          loadingReports: 'فشل في تحميل التقارير. يرجى المحاولة مرة أخرى',
+          deleteConfirmTitle: 'هل أنت متأكد؟',
+          deleteConfirmText: 'لا يمكن التراجع عن هذا الإجراء!',
+          deleted: 'تم الحذف!',
+          deleteSuccess: 'تم حذف التقرير بنجاح',
+          deleteFail: 'فشل في حذف التقرير. يرجى المحاولة مرة أخرى',
+          descriptionRequired: 'الرجاء إدخال وصف للتقرير',
+          locationRequired: 'الرجاء تحديد الموقع على الخريطة',
+          submitSuccess: 'تم إرسال التقرير بنجاح',
+          submitFail: 'فشل في إرسال التقرير. يرجى المحاولة مرة أخرى',
+          noImage: 'لم يتم اختيار صورة',
+          unsupportedType: 'نوع الملف غير مدعوم. يرجى اختيار صورة (JPG, PNG, GIF)',
+          fileTooLarge: 'حجم الصورة كبير جداً. الحد الأقصى هو 5 ميجابايت',
+          geolocationNotSupported: 'المتصفح لا يدعم تحديد الموقع الجغرافي',
+          gettingLocation: '<i class="fas fa-spinner fa-spin"></i> جاري تحديد الموقع...',
+          reportDesc: 'الوصف:',
+          reportType: 'نوع التلوث:',
+          notSpecified: 'غير محدد',
+          deleteBtn: '🗑 حذف',
+          filterFail: 'فشل في تطبيق الفلاتر',
+          myLocation: '📍 موقعي الحالي',
+          selectedLocation: '📍 موقع الإبلاغ المحدد',
+          submitSuccessTitle: 'تم الإرسال!'
+        },
+        en: {
+          ok: 'OK',
+          error: 'Error',
+          loadingReports: 'Failed to load reports. Please try again',
+          deleteConfirmTitle: 'Are you sure?',
+          deleteConfirmText: 'This action cannot be undone!',
+          deleted: 'Deleted!',
+          deleteSuccess: 'Report deleted successfully',
+          deleteFail: 'Failed to delete report. Please try again',
+          descriptionRequired: 'Please enter a report description',
+          locationRequired: 'Please select a location on the map',
+          submitSuccess: 'Report submitted successfully',
+          submitFail: 'Failed to submit report. Please try again',
+          noImage: 'No image selected',
+          unsupportedType: 'Unsupported file type. Please select an image (JPG, PNG, GIF)',
+          fileTooLarge: 'Image size is too large. Max is 5MB',
+          geolocationNotSupported: 'Geolocation is not supported by this browser',
+          gettingLocation: '<i class="fas fa-spinner fa-spin"></i> Getting location...',
+          reportDesc: 'Description:',
+          reportType: 'Pollution type:',
+          notSpecified: 'Not specified',
+          deleteBtn: '🗑 Delete',
+          filterFail: 'Failed to apply filters',
+          myLocation: '📍 My location',
+          selectedLocation: '📍 Selected report location',
+          submitSuccessTitle: 'Submitted!'
+        }
+      };
     }
+    t(key) {
+      return (this.translations[this.lang] && this.translations[this.lang][key]) || key;
+    }
+  
   
     showLoading() {
       this.state.setLoading(true);
@@ -97,22 +160,28 @@ class Config {
       document.getElementById('loading-indicator').style.display = 'none';
     }
   
-    showAlert(title, text, icon = 'info') {
-      return Swal.fire({
+    showAlert(title, text, icon = 'info', requireManual = false) {
+      const options = {
         title,
         text,
         icon,
-        confirmButtonText: 'حسناً',
+        confirmButtonText: this.t('ok'),
         confirmButtonColor: '#0096c7'
-      });
+      };
+      if (requireManual) {
+        options.allowOutsideClick = false;
+        options.allowEscapeKey = false;
+        options.timer = undefined;
+      }
+      return Swal.fire(options);
     }
   
     validateImage(file) {
       if (!Config.UI.allowedImageTypes.includes(file.type)) {
-        throw new Error('نوع الملف غير مدعوم. يرجى اختيار صورة (JPG, PNG, GIF)');
+        throw new Error(this.utils.t('unsupportedType'));
       }
       if (file.size > Config.UI.maxImageSize) {
-        throw new Error('حجم الصورة كبير جداً. الحد الأقصى هو 5 ميجابايت');
+        throw new Error(this.utils.t('fileTooLarge'));
       }
       return true;
     }
@@ -218,6 +287,16 @@ class Config {
         'other': 'gray'
       };
     }
+
+    translatePollutionType(type) {
+      const types = {
+        'plastic': 'بلاستيك',
+        'oil': 'نفط',
+        'chemical': 'مواد كيميائية',
+        'other': 'أخرى'
+      };
+      return types[type] || type;
+    }
   
     async loadReports() {
       try {
@@ -238,18 +317,13 @@ class Config {
             return;
           }
   
-          // Create custom icon with pollution type color
+          // Use pollution_type for color
+          const color = this.markerColors[report.pollution_type] || 'gray';
           const markerIcon = L.divIcon({
             className: 'custom-marker',
-            html: `<div style="background-color: ${this.markerColors[report.pollutionType] || this.markerColors.other}; 
-                                   width: 20px; 
-                                   height: 20px; 
-                                   border-radius: 50%; 
-                                   border: 2px solid white;
-                                   box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>`,
+            html: `<div style="background:${color};width:20px;height:20px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 4px rgba(0,0,0,0.5);"></div>`,
             iconSize: [20, 20]
           });
-  
           const marker = L.marker([report.latitude, report.longitude], { icon: markerIcon })
             .addTo(this.state.map)
             .bindPopup(this.createReportPopup(report));
@@ -258,7 +332,7 @@ class Config {
         });
       } catch (error) {
         console.error("Error loading reports:", error);
-        this.utils.showAlert('خطأ', 'فشل في تحميل التقارير. يرجى المحاولة مرة أخرى', 'error');
+        this.utils.showAlert(this.utils.t('error'), this.utils.t('loadingReports'), 'error');
       } finally {
         this.utils.hideLoading();
       }
@@ -267,7 +341,7 @@ class Config {
     createReportPopup(report) {
       let popupContent = `<div class="report-popup">
         <div class="report-description"><b>الوصف:</b> ${this.utils.escapeHtml(report.description)}</div>
-        <div class="report-type"><b>نوع التلوث:</b> ${this.utils.escapeHtml(report.pollutionType || 'غير محدد')}</div>`;
+        <div class="report-type"><b>نوع التلوث:</b> ${this.utils.escapeHtml(this.translatePollutionType(report.pollution_type) || this.utils.t('notSpecified'))}</div>`;
       
       if (report.images && report.images.length > 0) {
         popupContent += '<div class="report-images">';
@@ -279,17 +353,24 @@ class Config {
         popupContent += '</div>';
       }
       
-      popupContent += `<button onclick="app.reportManager.deleteReport(${report.id})" 
-        class="delete-report-btn">🗑 حذف</button></div>`;
-      
+      if (report.can_delete) {
+        popupContent += `<button onclick="app.reportManager.deleteReport(${report.id}, true)" 
+          class="delete-report-btn">🗑 حذف</button>`;
+      }
+      popupContent += `</div>`;
       return popupContent;
     }
   
-    async deleteReport(reportId) {
+    async deleteReport(reportId, canDelete = false) {
+      // If canDelete is explicitly false, show error and return
+      if (!canDelete) {
+        this.utils.showAlert(this.utils.t('error'), "لا يمكنك حذف تقرير لم تقم بكتابته!", 'error');
+        return;
+      }
       try {
         const result = await this.utils.showAlert(
-          'هل أنت متأكد؟',
-          "لا يمكن التراجع عن هذا الإجراء!",
+          this.utils.t('deleteConfirmTitle'),
+          this.utils.t('deleteConfirmText'),
           'warning',
         );
   
@@ -302,7 +383,7 @@ class Config {
           const data = await response.json();
           
           if (response.ok) {
-            this.utils.showAlert('تم الحذف!', 'تم حذف التقرير بنجاح', 'success');
+            await this.utils.showAlert(this.utils.t('deleted'), this.utils.t('deleteSuccess'), 'success', true);
             location.reload();
           } else {
             throw new Error(data.error || 'Failed to delete report');
@@ -310,7 +391,7 @@ class Config {
         }
       } catch (error) {
         console.error("Error deleting report:", error);
-        this.utils.showAlert('خطأ', 'فشل في حذف التقرير. يرجى المحاولة مرة أخرى', 'error');
+        this.utils.showAlert(this.utils.t('error'), this.utils.t('deleteFail'), 'error');
       } finally {
         this.utils.hideLoading();
       }
@@ -330,12 +411,35 @@ class Config {
       const files = Array.from(event.target.files);
       this.state.updateSelectedFiles(files);
       this.updatePreview();
+      // Update file name message
+      const fileNameSpan = document.getElementById('file-name');
+      if (fileNameSpan) {
+        if (files.length === 0) {
+          fileNameSpan.textContent = this.utils.t('noImage');
+        } else if (files.length === 1) {
+          fileNameSpan.textContent = files[0].name;
+        } else {
+          fileNameSpan.textContent = files.map(f => f.name).join(', ');
+        }
+      }
     }
   
     updatePreview() {
       const container = document.getElementById("preview-container");
       container.innerHTML = "";
-  
+
+      // Update file name message
+      const fileNameSpan = document.getElementById('file-name');
+      if (fileNameSpan) {
+        if (this.state.selectedFiles.length === 0) {
+          fileNameSpan.textContent = this.utils.t('noImage');
+        } else if (this.state.selectedFiles.length === 1) {
+          fileNameSpan.textContent = this.state.selectedFiles[0].name;
+        } else {
+          fileNameSpan.textContent = this.state.selectedFiles.map(f => f.name).join(', ');
+        }
+      }
+
       this.state.selectedFiles.forEach((file, index) => {
         try {
           this.utils.validateImage(file);
@@ -343,27 +447,27 @@ class Config {
           reader.onload = (e) => {
             const previewItem = document.createElement("div");
             previewItem.classList.add("preview-item");
-  
+
             const img = document.createElement("img");
             img.src = e.target.result;
             img.classList.add("preview-image");
             img.addEventListener("click", () => this.openPopup(e.target.result));
-  
+
             const removeBtn = document.createElement("button");
             removeBtn.classList.add("remove-image");
             removeBtn.innerHTML = '<i class="fas fa-times"></i>';
             removeBtn.addEventListener('click', () => this.removeImage(index));
-  
+
             previewItem.appendChild(img);
             previewItem.appendChild(removeBtn);
             container.appendChild(previewItem);
           };
           reader.readAsDataURL(file);
         } catch (error) {
-          this.utils.showAlert('خطأ', error.message, 'error');
+          this.utils.showAlert(this.utils.t('error'), error.message, 'error');
         }
       });
-  
+
       container.style.display = this.state.selectedFiles.length > 0 ? "grid" : "none";
     }
   
@@ -402,12 +506,12 @@ class Config {
       const longitude = form.querySelector('[name="longitude"]').value;
       
       if (!description) {
-        this.utils.showAlert('خطأ', 'الرجاء إدخال وصف للتقرير', 'error');
+        this.utils.showAlert(this.utils.t('error'), this.utils.t('descriptionRequired'), 'error');
         return;
       }
       
       if (!latitude || !longitude) {
-        this.utils.showAlert('خطأ', 'الرجاء تحديد الموقع على الخريطة', 'error');
+        this.utils.showAlert(this.utils.t('error'), this.utils.t('locationRequired'), 'error');
         return;
       }
   
@@ -426,11 +530,17 @@ class Config {
           throw new Error(data.message || 'Failed to submit report');
         }
   
-        this.utils.showAlert('نجاح', 'تم إرسال التقرير بنجاح', 'success');
-        location.reload();
+        await this.utils.showAlert(this.utils.t('submitSuccessTitle'), this.utils.t('submitSuccess'), 'success', true);
+        // Refresh reports and clear form after successful submission
+        if (typeof app !== 'undefined' && app.reportManager) {
+          app.reportManager.loadReports();
+        }
+        if (form && typeof form.reset === 'function') {
+          form.reset();
+        }
       } catch (error) {
         console.error("Error submitting report:", error);
-        this.utils.showAlert('خطأ', 'فشل في إرسال التقرير. يرجى المحاولة مرة أخرى', 'error');
+        this.utils.showAlert(this.utils.t('error'), this.utils.t('submitFail'), 'error');
       } finally {
         this.utils.hideLoading();
       }
@@ -449,14 +559,14 @@ class Config {
   
     getLocation() {
       if (!navigator.geolocation) {
-        this.utils.showAlert('خطأ', 'المتصفح لا يدعم تحديد الموقع الجغرافي', 'error');
+        this.utils.showAlert(this.utils.t('error'), this.utils.t('geolocationNotSupported'), 'error');
         return;
       }
 
       const locationButton = document.querySelector('[data-action="get-location"]');
       if (locationButton) {
         locationButton.disabled = true;
-        locationButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري تحديد الموقع...';
+        locationButton.innerHTML = this.utils.t('gettingLocation');
       }
 
       return new Promise((resolve, reject) => {
@@ -481,7 +591,7 @@ class Config {
               default:
                 errorMessage += error.message;
             }
-            this.utils.showAlert('خطأ', errorMessage, 'error');
+            this.utils.showAlert(this.utils.t('error'), errorMessage, 'error');
             reject(error);
           },
           {
@@ -540,7 +650,7 @@ class StatisticsManager {
       });
     } catch (error) {
       console.error('Error fetching statistics:', error);
-      this.utils.showAlert('خطأ', 'فشل في تحميل الإحصائيات', 'error');
+      this.utils.showAlert(this.utils.t('error'), 'فشل في تحميل الإحصائيات', 'error');
     } finally {
       this.utils.hideLoading();
     }
@@ -652,6 +762,62 @@ window.statisticsFunctions = {
   showStatistics: app.statsManager.showStatistics.bind(app.statsManager)
 };
 
+// Filtering logic for map reports
+window.applyFilters = async function() {
+  const pollutionType = document.getElementById('pollutionFilter').value;
+  const severity = document.getElementById('severityFilter').value;
+  const time = document.getElementById('timeFilter').value;
+
+  app.utils.showLoading();
+  try {
+    // Fetch all reports
+    const response = await fetch(Config.API.endpoints.reports);
+    if (!response.ok) throw new Error('فشل في تحميل التقارير');
+    let data = await response.json();
+
+    // Filter by pollution type
+    if (pollutionType) {
+      data = data.filter(r => r.pollution_type === pollutionType);
+    }
+    // Filter by severity
+    if (severity) {
+      data = data.filter(r => r.severity === severity);
+    }
+    // Filter by time (days)
+    if (time) {
+      const now = Date.now();
+      data = data.filter(r => {
+        if (!r.created_at) return false;
+        const reportTime = new Date(r.created_at).getTime();
+        return (now - reportTime) <= parseInt(time) * 24 * 60 * 60 * 1000;
+      });
+    }
+
+    // Remove old markers
+    app.state.markers.forEach(marker => app.state.map.removeLayer(marker));
+    app.state.clearMarkers();
+
+    // Add filtered markers
+    data.forEach(report => {
+      if (!report.latitude || !report.longitude) return;
+      const color = app.reportManager.markerColors[report.pollution_type] || 'gray';
+      const markerIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="background:${color};width:20px;height:20px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 4px rgba(0,0,0,0.5);"></div>`,
+        iconSize: [20, 20]
+      });
+      const marker = L.marker([report.latitude, report.longitude], { icon: markerIcon })
+        .addTo(app.state.map)
+        .bindPopup(app.reportManager.createReportPopup(report));
+      app.state.addMarker(report.id, marker);
+    });
+  } catch (error) {
+    app.utils.showAlert(this.utils.t('error'), this.utils.t('filterFail'), 'error');
+  } finally {
+    app.utils.hideLoading();
+  }
+};
+
   // Expose app to global scope for popup functions
   window.app = app;
   
@@ -661,6 +827,9 @@ window.statisticsFunctions = {
     resetMapView: app.mapManager.resetMapView.bind(app.mapManager)
   };
 
+
   // Add this line to expose closePopup function
   window.closePopup = () => app.imageManager.closePopup();
 
+  // Add this line to expose applyFilters function
+  window.applyFilters = window.applyFilters.bind(app);

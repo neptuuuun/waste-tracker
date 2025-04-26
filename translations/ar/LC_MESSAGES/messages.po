@@ -1,0 +1,225 @@
+# Arabic translations for waste-tracker
+# Copyright (C) 2025
+# This file is distributed under the same license as the waste-tracker
+# project.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: waste-tracker 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-04-26 02:12+0200\n"
+"PO-Revision-Date: 2025-04-24 21:00+0200\n"
+"Last-Translator: Cascade AI <cascade@codeium.com>\n"
+"Language: ar\n"
+"Language-Team: Arabic\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: server.py:108
+msgid "All fields are required"
+msgstr ""
+
+#: server.py:148
+msgid "Report added successfully"
+msgstr ""
+
+#: server.py:229
+msgid "⚠️ You cannot delete a report you did not submit!"
+msgstr ""
+
+#: server.py:233
+msgid "Report not found"
+msgstr ""
+
+#: server.py:250
+msgid "✅ Report deleted successfully!"
+msgstr ""
+
+#: server.py:252
+msgid "❌ An error occurred while deleting the report: "
+msgstr ""
+
+#: templates/index.html:6 templates/index.html:23
+msgid "Marine Waste Tracker"
+msgstr "تعقب النفايات البحرية"
+
+#: templates/index.html:24
+msgid "Towards clean and sustainable seas"
+msgstr "نحو بحار نظيفة ومستدامة"
+
+#: templates/index.html:42
+msgid "Get my location"
+msgstr "تحديد موقعي"
+
+#: templates/index.html:45
+msgid "Reset"
+msgstr "إعادة تعيين"
+
+#: templates/index.html:48
+msgid "Statistics"
+msgstr "إحصائيات"
+
+#: templates/index.html:55
+msgid "All pollution types"
+msgstr "كل أنواع التلوث"
+
+#: templates/index.html:56 templates/index.html:103
+msgid "Plastic"
+msgstr "بلاستيك"
+
+#: templates/index.html:57 templates/index.html:104
+msgid "Oil"
+msgstr "نفط"
+
+#: templates/index.html:58 templates/index.html:105
+msgid "Chemical"
+msgstr "مواد كيميائية"
+
+#: templates/index.html:59 templates/index.html:106
+msgid "Other"
+msgstr "أخرى"
+
+#: templates/index.html:63
+msgid "All severity levels"
+msgstr "كل مستويات الخطورة"
+
+#: templates/index.html:64 templates/index.html:113
+msgid "Low"
+msgstr "منخفض"
+
+#: templates/index.html:65 templates/index.html:114
+msgid "Medium"
+msgstr "متوسط"
+
+#: templates/index.html:66 templates/index.html:115
+msgid "High"
+msgstr "مرتفع"
+
+#: templates/index.html:70
+msgid "All periods"
+msgstr "كل الفترات"
+
+#: templates/index.html:71
+msgid "Last 7 days"
+msgstr "آخر 7 أيام"
+
+#: templates/index.html:72
+#, fuzzy
+msgid "Last 30 days"
+msgstr "آخر 7 أيام"
+
+#: templates/index.html:73
+msgid "Last 3 months"
+msgstr "آخر 3 أشهر"
+
+#: templates/index.html:80
+msgid "Add a new pollution report"
+msgstr "أضف تقريرًا جديدًا عن التلوث"
+
+#: templates/index.html:81
+msgid "Click on the map to select the location automatically"
+msgstr "انقر على الخريطة لتحديد الموقع تلقائيًا"
+
+#: templates/index.html:85
+msgid "Latitude"
+msgstr "خط العرض"
+
+#: templates/index.html:86 templates/index.html:91
+msgid "Will be filled automatically"
+msgstr "سيتم ملؤه تلقائياً"
+
+#: templates/index.html:90
+msgid "Longitude"
+msgstr "خط الطول"
+
+#: templates/index.html:95
+msgid "Problem description"
+msgstr "وصف المشكلة"
+
+#: templates/index.html:96
+msgid "Enter a detailed description of the problem..."
+msgstr "أدخل وصفاً تفصيلياً للمشكلة..."
+
+#: templates/index.html:100
+msgid "Pollution type"
+msgstr "نوع التلوث"
+
+#: templates/index.html:102
+msgid "Select pollution type"
+msgstr "اختر نوع التلوث"
+
+#: templates/index.html:111
+msgid "Severity level"
+msgstr "مستوى الخطورة"
+
+#: templates/index.html:121
+msgid "Choose images"
+msgstr "اختر صور"
+
+#: templates/index.html:124
+msgid "No image selected"
+msgstr "لم يتم اختيار صورة"
+
+#: templates/index.html:129
+msgid "Submit Report"
+msgstr "إرسال التقرير"
+
+#: templates/index.html:138
+msgid "Close"
+msgstr "إغلاق"
+
+#: templates/index.html:140
+msgid "Enlarged image"
+msgstr "صورة مكبرة"
+
+#: templates/index.html:146
+msgid "Loading..."
+msgstr "جاري التحميل..."
+
+#: templates/index.html:151
+msgid "Environmental Awareness"
+msgstr "التوعية البيئية"
+
+#: templates/index.html:155
+msgid "Impact of Marine Waste"
+msgstr "تأثير النفايات البحرية"
+
+#: templates/index.html:156
+msgid ""
+"Marine waste negatively affects marine life and the entire ecosystem. "
+"Thousands of marine creatures die annually due to plastic ingestion."
+msgstr ""
+"النفايات البحرية تؤثر سلباً على الحياة البحرية والنظام البيئي بأكمله. "
+"آلاف الكائنات البحرية تموت سنوياً بسبب ابتلاع البلاستيك."
+
+#: templates/index.html:160
+msgid "How can you help?"
+msgstr "كيف يمكنك المساعدة؟"
+
+#: templates/index.html:161
+msgid ""
+"Reduce plastic use, recycle, join beach cleanups, and report marine "
+"pollution when you see it."
+msgstr ""
+"قلل من استخدام البلاستيك، أعد التدوير، شارك في حملات تنظيف الشواطئ، وبلغ "
+"عن التلوث البحري عند رؤيته."
+
+#: templates/index.html:165
+msgid "Protecting the Marine Environment"
+msgstr "حماية البيئة البحرية"
+
+#: templates/index.html:166
+msgid ""
+"Seas and oceans are the source of life on Earth. Protecting them is a "
+"shared responsibility for a sustainable future."
+msgstr ""
+"البحار والمحيطات هي مصدر الحياة على الأرض. حمايتها مسؤولية مشتركة من أجل "
+"مستقبل مستدام."
+
+#: templates/index.html:172
+msgid "All rights reserved © 2025 | Powered by Marwa Ben Zaoui"
+msgstr "جميع الحقوق محفوظة 2025 | مدعوم من طرف مروة بن زاوي"
+

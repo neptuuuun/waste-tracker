@@ -101,10 +101,12 @@
   #map-container {
     position: relative;
     margin-bottom: var(--space-xl);
+    min-height: 300px; /* Ensure container has minimum height */
   }
   
   #map {
     height: 65vh;
+    min-height: 300px; /* Fallback min-height */
     width: 100%;
     border-radius: var(--border-radius-lg);
     border: none;

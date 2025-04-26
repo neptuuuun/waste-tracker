@@ -1,11 +1,20 @@
-from flask import Flask, render_template, request, jsonify, session, send_from_directory
+from flask import Flask, render_template, request, session, redirect, url_for, flash, jsonify, send_from_directory
+from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
+from flask_babel import Babel, _
 import os
 import datetime
 
 app = Flask(__name__)
 app.secret_key = "your_secret_key"  # ✅ ضروري لتفعيل الجلسات
+
+# Flask-Babel configuration
+app.config['BABEL_DEFAULT_LOCALE'] = 'ar'
+app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations'
+app.config['LANGUAGES'] = ['ar', 'en']
+babel = Babel(app)
+print(f"babel object type: {type(babel)}")
 
 # تحديد مكان تخزين الصور والملفات
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -21,6 +30,36 @@ if os.path.exists(db_path):
         print(f"Old database deleted successfully: {db_path}")
     except Exception as e:
         print(f"Error deleting old database: {e}")
+
+# --- Babel locale selection ---
+from flask import g
+from flask_babel import get_locale
+import user_agents
+
+@babel.localeselector
+def get_locale():
+    # 1. Check session
+    if 'lang' in session:
+        return session['lang']
+    # 2. Check browser Accept-Language
+    accept_languages = request.accept_languages.best_match(app.config['LANGUAGES'])
+    if accept_languages:
+        return accept_languages
+    # 3. Default fallback
+    return 'ar'
+
+# Context processor to make get_locale available in templates
+@app.context_processor
+def inject_get_locale():
+    return dict(get_locale=get_locale)
+
+@app.route('/set_language/<lang_code>')
+def set_language(lang_code):
+    if lang_code not in app.config['LANGUAGES']:
+        lang_code = 'ar'
+    session['lang'] = lang_code
+    next_url = request.args.get('next') or url_for('index')
+    return redirect(next_url)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -66,7 +105,7 @@ def add_report():
         images = request.files.getlist('images')
 
         if not all([latitude, longitude, description]):
-            return jsonify({"error": "جميع الحقول مطلوبة"}), 400
+            return jsonify({"error": _(u"All fields are required")}), 400
 
         user_ip = request.remote_addr
 
@@ -106,7 +145,7 @@ def add_report():
         session['my_reports'].append(new_report.id)
         session.modified = True
 
-        return jsonify({"message": "تمت إضافة التقرير بنجاح"}), 201
+        return jsonify({"message": _(u"Report added successfully")}), 201
 
     except Exception as e:
         print(f"Error in add_report: {str(e)}")
@@ -123,7 +162,7 @@ def uploaded_file(filename):
 @app.route('/get_reports', methods=['GET'])
 def get_reports():
     try:
-        # Get filter parameters
+        # Get filter parameters                       
         pollution_type = request.args.get('pollution_type')
         severity = request.args.get('severity')
         days = request.args.get('days')
@@ -139,6 +178,7 @@ def get_reports():
             query = query.filter(Report.timestamp >= cutoff_date)
 
         reports = query.all()
+        my_reports = set(session.get('my_reports', []))
         return jsonify([{
             'id': r.id,
             'latitude': r.latitude,
@@ -147,7 +187,8 @@ def get_reports():
             'severity': r.severity,
             'pollution_type': r.pollution_type,
             'timestamp': r.timestamp.isoformat() if r.timestamp else None,
-            'images': [{'image_path': img.image_path} for img in set(r.images)]
+            'images': [{'image_path': img.image_path} for img in set(r.images)],
+            'can_delete': r.id in my_reports
         } for r in reports])
     except Exception as e:
         print(f"Error in get_reports: {str(e)}")
@@ -187,11 +228,11 @@ def get_statistics():
 @app.route('/delete_report/<int:report_id>', methods=['DELETE'])
 def delete_report(report_id):
     if 'my_reports' not in session or report_id not in session['my_reports']:
-        return jsonify({"error": "⚠️ لا يمكنك حذف تقرير لم تقم بكتابته!"}), 403  
+        return jsonify({"error": _(u"⚠️ You cannot delete a report you did not submit!")}), 403  
 
     report = Report.query.get(report_id)
     if not report:
-        return jsonify({"error": "التقرير غير موجود"}), 404
+        return jsonify({"error": _(u"Report not found")}), 404
 
     try:
         # حذف الصور المرتبطة بالتقرير
@@ -208,9 +249,9 @@ def delete_report(report_id):
         session['my_reports'].remove(report_id)  
         session.modified = True
 
-        return jsonify({"message": "✅ تم حذف التقرير بنجاح!"}), 200
+        return jsonify({"message": _(u"✅ Report deleted successfully!")}), 200
     except Exception as e:
-        return jsonify({"error": f"❌ حدث خطأ أثناء حذف التقرير: {str(e)}"}), 500
+        return jsonify({"error": _(u"❌ An error occurred while deleting the report: ") + str(e)}), 500
 
 
 if __name__ == '__main__':

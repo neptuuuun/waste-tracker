@@ -1,0 +1,225 @@
+# English translations for waste-tracker
+# Copyright (C) 2025
+# This file is distributed under the same license as the waste-tracker
+# project.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: waste-tracker 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-04-26 02:12+0200\n"
+"PO-Revision-Date: 2025-04-24 21:00+0200\n"
+"Last-Translator: Cascade AI <cascade@codeium.com>\n"
+"Language: en\n"
+"Language-Team: English\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: server.py:108
+msgid "All fields are required"
+msgstr ""
+
+#: server.py:148
+msgid "Report added successfully"
+msgstr ""
+
+#: server.py:229
+msgid "⚠️ You cannot delete a report you did not submit!"
+msgstr ""
+
+#: server.py:233
+msgid "Report not found"
+msgstr ""
+
+#: server.py:250
+msgid "✅ Report deleted successfully!"
+msgstr ""
+
+#: server.py:252
+msgid "❌ An error occurred while deleting the report: "
+msgstr ""
+
+#: templates/index.html:6 templates/index.html:23
+msgid "Marine Waste Tracker"
+msgstr "Marine Waste Tracker"
+
+#: templates/index.html:24
+#, fuzzy
+msgid "Towards clean and sustainable seas"
+msgstr "Towards clean andstainable seas"
+
+#: templates/index.html:42
+msgid "Get my location"
+msgstr "Get my location"
+
+#: templates/index.html:45
+msgid "Reset"
+msgstr "Reset"
+
+#: templates/index.html:48
+msgid "Statistics"
+msgstr "Statistics"
+
+#: templates/index.html:55
+msgid "All pollution types"
+msgstr "All pollution types"
+
+#: templates/index.html:56 templates/index.html:103
+msgid "Plastic"
+msgstr "Plastic"
+
+#: templates/index.html:57 templates/index.html:104
+msgid "Oil"
+msgstr "Oil"
+
+#: templates/index.html:58 templates/index.html:105
+msgid "Chemical"
+msgstr "Chemical"
+
+#: templates/index.html:59 templates/index.html:106
+msgid "Other"
+msgstr "Other"
+
+#: templates/index.html:63
+msgid "All severity levels"
+msgstr "All severity levels"
+
+#: templates/index.html:64 templates/index.html:113
+msgid "Low"
+msgstr "Low"
+
+#: templates/index.html:65 templates/index.html:114
+msgid "Medium"
+msgstr "Medium"
+
+#: templates/index.html:66 templates/index.html:115
+msgid "High"
+msgstr "High"
+
+#: templates/index.html:70
+msgid "All periods"
+msgstr "All periods"
+
+#: templates/index.html:71
+msgid "Last 7 days"
+msgstr "Last 7 days"
+
+#: templates/index.html:72
+msgid "Last 30 days"
+msgstr "Last 30 days"
+
+#: templates/index.html:73
+#, fuzzy
+msgid "Last 3 months"
+msgstr "Last 30 days"
+
+#: templates/index.html:80
+msgid "Add a new pollution report"
+msgstr "Add a new pollution report"
+
+#: templates/index.html:81
+msgid "Click on the map to select the location automatically"
+msgstr "Click on the map to select the location automatically"
+
+#: templates/index.html:85
+msgid "Latitude"
+msgstr "Latitude"
+
+#: templates/index.html:86 templates/index.html:91
+msgid "Will be filled automatically"
+msgstr "Will be filled automatically"
+
+#: templates/index.html:90
+msgid "Longitude"
+msgstr "Longitude"
+
+#: templates/index.html:95
+msgid "Problem description"
+msgstr "Problem description"
+
+#: templates/index.html:96
+msgid "Enter a detailed description of the problem..."
+msgstr "Enter a detailed description of the problem..."
+
+#: templates/index.html:100
+#, fuzzy
+msgid "Pollution type"
+msgstr "Pollution type"
+
+#: templates/index.html:102
+#, fuzzy
+msgid "Select pollution type"
+msgstr "Select pollution type"
+
+#: templates/index.html:111
+msgid "Severity level"
+msgstr "Severity level"
+
+#: templates/index.html:121
+msgid "Choose images"
+msgstr "Choose images"
+
+#: templates/index.html:124
+msgid "No image selected"
+msgstr ""
+
+#: templates/index.html:129
+msgid "Submit Report"
+msgstr ""
+
+#: templates/index.html:138
+msgid "Close"
+msgstr "Close"
+
+#: templates/index.html:140
+msgid "Enlarged image"
+msgstr "Enlarged image"
+
+#: templates/index.html:146
+msgid "Loading..."
+msgstr "Loading..."
+
+#: templates/index.html:151
+msgid "Environmental Awareness"
+msgstr ""
+
+#: templates/index.html:155
+msgid "Impact of Marine Waste"
+msgstr ""
+
+#: templates/index.html:156
+msgid ""
+"Marine waste negatively affects marine life and the entire ecosystem. "
+"Thousands of marine creatures die annually due to plastic ingestion."
+msgstr ""
+
+#: templates/index.html:160
+msgid "How can you help?"
+msgstr ""
+
+#: templates/index.html:161
+msgid ""
+"Reduce plastic use, recycle, join beach cleanups, and report marine "
+"pollution when you see it."
+msgstr ""
+
+#: templates/index.html:165
+msgid "Protecting the Marine Environment"
+msgstr ""
+
+#: templates/index.html:166
+msgid ""
+"Seas and oceans are the source of life on Earth. Protecting them is a "
+"shared responsibility for a sustainable future."
+msgstr ""
+
+#: templates/index.html:172
+msgid "All rights reserved © 2025 | Powered by Maroua Benzaoui"
+msgstr "All rights reserved © 2025 | Powered by Maroua Benzaoui"
+
+#~ msgid "Last 90 days"
+#~ msgstr "Last 90 days"
+
