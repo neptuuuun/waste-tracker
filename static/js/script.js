@@ -92,6 +92,18 @@ class Config {
         ar: {
           ok: 'حسناً',
           error: 'خطأ',
+          statistics: 'إحصائيات',
+          reportStats: 'إحصائيات التقارير',
+          totalReports: 'إجمالي التقارير',
+          pollutionTypeDist: 'توزيع أنواع التلوث',
+          severityDist: 'توزيع مستويات الخطورة',
+          plastic: 'بلاستيك',
+          oil: 'نفط',
+          chemical: 'مواد كيميائية',
+          other: 'أخرى',
+          low: 'منخفض',
+          medium: 'متوسط',
+          high: 'مرتفع',
           loadingReports: 'فشل في تحميل التقارير. يرجى المحاولة مرة أخرى',
           deleteConfirmTitle: 'هل أنت متأكد؟',
           deleteConfirmText: 'لا يمكن التراجع عن هذا الإجراء!',
@@ -119,6 +131,18 @@ class Config {
         en: {
           ok: 'OK',
           error: 'Error',
+          statistics: 'Statistics',
+          reportStats: 'Report Statistics',
+          totalReports: 'Total reports',
+          pollutionTypeDist: 'Pollution type distribution',
+          severityDist: 'Severity distribution',
+          plastic: 'Plastic',
+          oil: 'Oil',
+          chemical: 'Chemical',
+          other: 'Other',
+          low: 'Low',
+          medium: 'Medium',
+          high: 'High',
           loadingReports: 'Failed to load reports. Please try again',
           deleteConfirmTitle: 'Are you sure?',
           deleteConfirmText: 'This action cannot be undone!',
@@ -623,20 +647,20 @@ class StatisticsManager {
       const data = await response.json();
 
       await Swal.fire({
-        title: 'إحصائيات',
+        title: this.utils.t('statistics'),
         html: `
           <div class="statistics-content">
-            <h3>إحصائيات التقارير</h3>
-            <p>إجمالي التقارير: ${data.total_reports}</p>
+            <h3>${this.utils.t('reportStats')}</h3>
+            <p>${this.utils.t('totalReports')}: ${data.total_reports}</p>
             
-            <h4>توزيع أنواع التلوث:</h4>
+            <h4>${this.utils.t('pollutionTypeDist')}:</h4>
             <ul>
               ${Object.entries(data.pollution_types).map(([type, count]) => `
                 <li>${this.translatePollutionType(type)}: ${count}</li>
               `).join('')}
             </ul>
 
-            <h4>توزيع مستويات الخطورة:</h4>
+            <h4>${this.utils.t('severityDist')}:</h4>
             <ul>
               ${Object.entries(data.severity_distribution).map(([severity, count]) => `
                 <li>${this.translateSeverity(severity)}: ${count}</li>
@@ -645,7 +669,7 @@ class StatisticsManager {
           </div>
         `,
         icon: 'info',
-        confirmButtonText: 'حسناً',
+        confirmButtonText: this.utils.t('ok'),
         confirmButtonColor: '#0096c7'
       });
     } catch (error) {
@@ -658,19 +682,19 @@ class StatisticsManager {
 
   translatePollutionType(type) {
     const types = {
-      'plastic': 'بلاستيك',
-      'oil': 'نفط',
-      'chemical': 'مواد كيميائية',
-      'other': 'أخرى'
+      'plastic': this.utils.t('plastic'),
+      'oil': this.utils.t('oil'),
+      'chemical': this.utils.t('chemical'),
+      'other': this.utils.t('other')
     };
     return types[type] || type;
   }
 
   translateSeverity(severity) {
     const severities = {
-      'low': 'منخفض',
-      'medium': 'متوسط',
-      'high': 'مرتفع'
+      'low': this.utils.t('low'),
+      'medium': this.utils.t('medium'),
+      'high': this.utils.t('high')
     };
     return severities[severity] || severity;
   }
