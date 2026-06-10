@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{% if get_locale() == 'ar' %}تسجيل الدخول{% else %}Login{% endif %} — Marine Waste Tracker{% endblock %}
+{% block content %}
+<div class="page-container">
+  <h1>{% if get_locale() == 'ar' %}تسجيل الدخول{% else %}Login{% endif %}</h1>
+  <form class="login-form">
+    <label for="username">{% if get_locale() == 'ar' %}اسم المستخدم أو البريد الإلكتروني{% else %}Username or Email{% endif %}</label>
+    <input type="text" id="username" name="username" required>
+    <label for="password">{% if get_locale() == 'ar' %}كلمة المرور{% else %}Password{% endif %}</label>
+    <input type="password" id="password" name="password" required>
+    <button type="submit">{% if get_locale() == 'ar' %}دخول{% else %}Login{% endif %}</button>
+  </form>
+  <p>
+    {% if get_locale() == 'ar' %}
+      ليس لديك حساب؟ <a href="{{ url_for('signup') }}">إنشاء حساب</a>
+    {% else %}
+      Don't have an account? <a href="{{ url_for('signup') }}">Sign up</a>
+    {% endif %}
+  </p>
+</div>
+{% endblock %}

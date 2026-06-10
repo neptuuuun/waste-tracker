@@ -1,182 +1,129 @@
-<!DOCTYPE html>
-<html lang="{{ get_locale() }}" dir="{{ 'rtl' if get_locale() == 'ar' else 'ltr' }}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ _('Marine Waste Tracker') }}</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    
-    <!-- استيراد مكتبات Leaflet.js للخرائط -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    
-    <!-- إضافة Font Awesome للأيقونات -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <!-- إضافة مكتبة SweetAlert2 للتنبيهات الجميلة -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-</head>
-<body>
-    <header>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" style="height: 80px; width: 80px;">
-    <span style="font-size: 2rem; font-weight: bold;">{{ _('Marine Waste Tracker') }}</span>
+{% extends "base.html" %}
+{% block title %}Marine Waste Tracker — Mediterranean Pollution Monitoring{% endblock %}
+
+{% block content %}
+
+<!-- ── Hero ──────────────────────────────────────────────────── -->
+<section class="hero">
+  <p class="hero-eyebrow">
+    {% if get_locale() == 'ar' %}رصد نفايات البحر المتوسط{% else %}Mediterranean Marine Waste Monitoring{% endif %}
+  </p>
+  <h1 class="hero-title">
+    {% if get_locale() == 'ar' %}
+      تتبّع. حلّل. <span class="accent">تصرّف.</span>
+    {% else %}
+      Track. Analyze. <span class="accent">Act.</span>
+    {% endif %}
+  </h1>
+  <p class="hero-sub">
+    {% if get_locale() == 'ar' %}
+      منصة علمية مجتمعية لرصد النفايات البحرية في حوض البحر الأبيض المتوسط.
+      أبلغ عن التلوث، شارك البيانات، وساهم في حماية البحر.
+    {% else %}
+      A citizen-science platform for monitoring marine litter across the Mediterranean basin.
+      Report pollution, share data, and help protect our sea.
+    {% endif %}
+  </p>
+</section>
+
+<!-- ── Live stat counters ────────────────────────────────────── -->
+<div class="container">
+  <div class="stats-strip">
+    <div class="stat-card">
+      <span class="stat-value" id="stat-total">—</span>
+      <span class="stat-label">
+        {% if get_locale() == 'ar' %}إجمالي التقارير{% else %}Total Reports{% endif %}
+      </span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-value" id="stat-month">—</span>
+      <span class="stat-label">
+        {% if get_locale() == 'ar' %}هذا الشهر{% else %}This Month{% endif %}
+      </span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-value" id="stat-hotspots">—</span>
+      <span class="stat-label">
+        {% if get_locale() == 'ar' %}مناطق ساخنة{% else %}Hotspots Identified{% endif %}
+      </span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-value" id="stat-categories">12</span>
+      <span class="stat-label">
+        {% if get_locale() == 'ar' %}فئات نفايات{% else %}Waste Categories{% endif %}
+      </span>
+    </div>
+  </div>
 </div>
-<p class="subtitle">{{ _('Towards clean and sustainable seas') }}</p>
-            </div>
-            <!-- Language switcher: handled by JS, no action needed -->
-<select name="lang" onchange="window.location.href='/set_language/' + this.value + '?next=' + encodeURIComponent(window.location.pathname); return false;" style="margin: 4px; font-size: 0.85em; width: 180px; padding: 3px 8px; border-radius: 5px;">
-    <option value="" disabled {% if get_locale() not in ['ar', 'en'] %}selected{% endif %}>{{ _('Select Language') }}</option>
-    <option value="ar" {% if get_locale() == 'ar' %}selected{% endif %}>{{ _('Arabic') }}</option>
-    <option value="en" {% if get_locale() == 'en' %}selected{% endif %}>{{ _('English') }}</option>
-</select>
-        </div>
-    </header>
 
-    <main>
-        <!-- خريطة تفاعلية -->
-        <div id="map-container">
-            <div id="map"></div>
-            <div id="map-controls">
-                <button onclick="mapFunctions.getLocation()" class="map-control-btn" data-action="get-location">
-                    <i class="fas fa-location-dot"></i> {{ _('Get my location') }}
-                </button>
-                <button onclick="mapFunctions.resetMapView()" class="map-control-btn">
-                    <i class="fas fa-arrows-rotate"></i> {{ _('Reset') }}
-                </button>
-                <button onclick="statisticsFunctions.showStatistics()" class="map-control-btn">
-                    <i class="fas fa-chart-bar"></i> {{ _('Statistics') }}
-                </button>
-            </div>
-            
-            <!-- فلاتر -->
-            <div class="filters">
-                <select id="pollutionFilter" onchange="applyFilters()">
-                    <option value="">{{ _('All pollution types') }}</option>
-                    <option value="plastic">{{ _('Plastic') }}</option>
-                    <option value="oil">{{ _('Oil') }}</option>
-                    <option value="chemical">{{ _('Chemical') }}</option>
-                    <option value="other">{{ _('Other') }}</option>
-                </select>
-                
-                <select id="severityFilter" onchange="applyFilters()">
-                    <option value="">{{ _('All severity levels') }}</option>
-                    <option value="low">{{ _('Low') }}</option>
-                    <option value="medium">{{ _('Medium') }}</option>
-                    <option value="high">{{ _('High') }}</option>
-                </select>
-                
-                <select id="timeFilter" onchange="applyFilters()">
-                    <option value="">{{ _('All periods') }}</option>
-                    <option value="7">{{ _('Last 7 days') }}</option>
-                    <option value="30">{{ _('Last 30 days') }}</option>
-                    <option value="90">{{ _('Last 3 months') }}</option>
-                </select>
-            </div>
-        </div>
-        
-        <!-- نموذج إدخال البيانات -->
-        <div class="report-form">
-            <h2><i class="fas fa-plus-circle"></i> {{ _('Add a new pollution report') }}</h2>
-            <p class="form-instructions">📍 {{ _('Click on the map to select the location automatically') }}</p>
-            
-            <form id="reportForm" enctype="multipart/form-data">
-                <div class="form-group">
-                    <label for="latitude">{{ _('Latitude') }}</label>
-                    <input type="text" id="latitude" name="latitude" placeholder="{{ _('Will be filled automatically') }}" readonly required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="longitude">{{ _('Longitude') }}</label>
-                    <input type="text" id="longitude" name="longitude" placeholder="{{ _('Will be filled automatically') }}" readonly required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="description">{{ _('Problem description') }}</label>
-                    <textarea id="description" name="description" placeholder="{{ _('Enter a detailed description of the problem...') }}" required></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label for="pollutionType">{{ _('Pollution type') }}</label>
-                    <select id="pollutionType" name="pollutionType" required>
-                        <option value="">{{ _('Select pollution type') }}</option>
-                        <option value="plastic">{{ _('Plastic') }}</option>
-                        <option value="oil">{{ _('Oil') }}</option>
-                        <option value="chemical">{{ _('Chemical') }}</option>
-                        <option value="other">{{ _('Other') }}</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="severity">{{ _('Severity level') }}</label>
-                    <select id="severity" name="severity" required>
-                        <option value="low">{{ _('Low') }}</option>
-                        <option value="medium">{{ _('Medium') }}</option>
-                        <option value="high">{{ _('High') }}</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="images" class="file-input-label">
-                        <i class="fas fa-camera"></i> {{ _('Choose images') }}
-                    </label>
-                    <input type="file" id="images" name="images" accept="image/*" class="file-input" multiple>
-                    <span id="file-name" class="file-name">{{ _('No image selected') }}</span>
-                    <div id="preview-container" class="preview-container"></div>
-                </div>
+<!-- ── Map section ───────────────────────────────────────────── -->
+<div class="map-section">
 
-                <button type="submit" class="submit-btn">
-                    <i class="fas fa-paper-plane"></i> {{ _('Submit Report') }}
-                </button>
-            </form>
-        </div>
-    </main>
+  <!-- Toolbar / filters -->
+  <div class="map-toolbar">
+    <span class="map-toolbar-label">
+      {% if get_locale() == 'ar' %}تصفية{% else %}Filter{% endif %}
+    </span>
 
-    <!-- Image popup window -->
-    <div id="popupOverlay" class="popup-overlay">
-        <button class="popup-close" onclick="closePopup()">
-            <i class="fas fa-times"></i> {{ _('Close') }}
-        </button>
-        <img id="popupImage" class="popup-image" src="" alt="{{ _('Enlarged image') }}">
+    <select class="map-filter" id="filterCategory" aria-label="Filter by waste category">
+      <option value="">{% if get_locale() == 'ar' %}كل الفئات{% else %}All categories{% endif %}</option>
+      {% for key, cat in waste_categories.items() %}
+        <option value="{{ key }}">{{ cat.emoji }} {{ cat.label_ar if get_locale() == 'ar' else cat.label_en }}</option>
+      {% endfor %}
+    </select>
+
+    <select class="map-filter" id="filterSeverity" aria-label="Filter by severity">
+      <option value="">{% if get_locale() == 'ar' %}كل الدرجات{% else %}All severities{% endif %}</option>
+      {% for key, sev in severities.items() %}
+        <option value="{{ key }}">{{ sev.label_ar if get_locale() == 'ar' else sev.label_en }}</option>
+      {% endfor %}
+    </select>
+
+    <select class="map-filter" id="filterEnvType" aria-label="Filter by environment type">
+      <option value="">{% if get_locale() == 'ar' %}كل البيئات{% else %}All environments{% endif %}</option>
+      {% for key, env in environment_types.items() %}
+        <option value="{{ key }}">{{ env.emoji }} {{ env.label_ar if get_locale() == 'ar' else env.label_en }}</option>
+      {% endfor %}
+    </select>
+
+    <div class="map-date-range" style="display:flex;align-items:center;gap:0.3rem;">
+      <input type="date" class="map-date-input" id="filterFrom" aria-label="From date">
+      <span style="color:var(--text-faint);font-size:0.8rem;">—</span>
+      <input type="date" class="map-date-input" id="filterTo" aria-label="To date">
     </div>
 
-    <!-- Loading indicator -->
-    <div id="loading-indicator" class="loading-indicator" style="display: none;">
-        <div class="spinner"></div>
-        <p>{{ _('Loading...') }}</p>
-    </div>
+    <div class="map-spacer"></div>
 
-    <!-- Awareness section -->
-    <div class="awareness-section">
-        <h2><i class="fas fa-lightbulb"></i> {{ _('Environmental Awareness') }}</h2>
-        <div class="awareness-grid">
-            <div class="awareness-card">
-                <i class="fas fa-trash-alt"></i>
-                <h3>{{ _('Impact of Marine Waste') }}</h3>
-                <p>{{ _('Marine waste negatively affects marine life and the entire ecosystem. Thousands of marine creatures die annually due to plastic ingestion.') }}</p>
-            </div>
-            <div class="awareness-card">
-                <i class="fas fa-recycle"></i>
-                <h3>{{ _('How can you help?') }}</h3>
-                <p>{{ _('Reduce plastic use, recycle, join beach cleanups, and report marine pollution when you see it.') }}</p>
-            </div>
-            <div class="awareness-card">
-                <i class="fas fa-hand-holding-water"></i>
-                <h3>{{ _('Protecting the Marine Environment') }}</h3>
-                <p>{{ _('Seas and oceans are the source of life on Earth. Protecting them is a shared responsibility for a sustainable future.') }}</p>
-            </div>
-        </div>
-    </div>
+    <button class="btn-map-ctrl" id="btnHeatmap">
+      🔥 {% if get_locale() == 'ar' %}خريطة الحرارة{% else %}Heatmap{% endif %}
+    </button>
+    <button class="btn-map-ctrl" id="btnResetFilters">
+      {% if get_locale() == 'ar' %}إعادة ضبط{% else %}Reset{% endif %}
+    </button>
+  </div>
 
-    <footer>
-        <p>{{ _('All rights reserved © 2025 | Powered by Maroua Benzaoui') }}</p>
-    </footer>
+  <!-- Leaflet map -->
+  <div id="map" role="application"
+       aria-label="{% if get_locale() == 'ar' %}خريطة تقارير تلوث المحيط{% else %}Marine pollution reports map{% endif %}">
+  </div>
 
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-</body>
-</html>
+  <!-- Legend -->
+  <div class="map-legend">
+    <span style="font-weight:700;color:var(--text-muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.07em;">
+      {% if get_locale() == 'ar' %}الخطورة:{% else %}Severity:{% endif %}
+    </span>
+    <span class="legend-item"><span class="legend-dot" style="background:#00e5a0;"></span>{% if get_locale() == 'ar' %}منخفضة{% else %}Low{% endif %}</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#ffd166;"></span>{% if get_locale() == 'ar' %}متوسطة{% else %}Medium{% endif %}</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#ff6b35;"></span>{% if get_locale() == 'ar' %}مرتفعة{% else %}High{% endif %}</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#ff3d5a;"></span>{% if get_locale() == 'ar' %}حرجة{% else %}Critical{% endif %}</span>
+    <span style="margin-left:auto;font-size:0.72rem;color:var(--text-faint);">
+      {% if get_locale() == 'ar' %}انقر على الخريطة للإبلاغ{% else %}Click the map to report{% endif %}
+    </span>
+  </div>
 
+</div>
+{% endblock %}
 
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/map_main.js') }}"></script>
+{% endblock %}

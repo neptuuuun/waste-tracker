@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}البلاغات القديمة — Marine Waste Tracker{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top:1.75rem;padding-bottom:4rem;">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="admin-page-header">
+    <div class="admin-page-title-group">
+      <h1>📋 البلاغات القديمة</h1>
+      <p>بلاغات النظام السابق التي تنتظر المراجعة</p>
+    </div>
+    <div class="admin-header-actions">
+      <a href="{{ url_for('admin_panel') }}" class="btn-ghost btn-sm"
+         style="min-height:38px;display:inline-flex;align-items:center;">
+        ← لوحة الإشراف
+      </a>
+    </div>
+  </div>
+
+  {% if reports %}
+
+    <!-- ══ Cards (works on all screen sizes — legacy data is simple) ══ -->
+    <div class="admin-cards">
+      {% for report in reports %}
+        <article class="admin-card">
+
+          <!-- Card header -->
+          <div class="admin-card-header">
+            <span class="admin-card-code">#{{ report.id }}</span>
+            <span class="admin-card-date">
+              {{ report.timestamp.strftime('%Y-%m-%d %H:%M') if report.timestamp else '—' }}
+            </span>
+          </div>
+
+          <!-- Card body -->
+          <div class="admin-card-body">
+
+            <div class="admin-card-meta-row">
+              <span class="admin-card-cat">
+                🗑️ {{ report.pollution_type|capitalize if report.pollution_type else 'غير محدد' }}
+              </span>
+              <span class="sev-pill sev-pill-{{ report.severity if report.severity in ['low','medium','high','critical'] else 'medium' }}">
+                {%- set sev_ar = {'low':'منخفض','medium':'متوسط','high':'مرتفع','critical':'حرج'} -%}
+                {{ sev_ar.get(report.severity, report.severity) }}
+              </span>
+            </div>
+
+            {% if report.description %}
+              <div class="admin-card-desc">{{ report.description }}</div>
+            {% endif %}
+
+            <div class="admin-card-location" dir="ltr" style="text-align:right;">
+              📍 {{ '%.4f'|format(report.latitude) }}, {{ '%.4f'|format(report.longitude) }}
+            </div>
+
+            {% if report.images %}
+              <div class="admin-card-photos">
+                {% for img in report.images %}
+                  <img src="{{ url_for('uploaded_file', filename=img.image_path) }}"
+                       alt="صورة البلاغ {{ loop.index }}"
+                       class="admin-card-photo"
+                       onclick="openLightbox(this.src)"
+                       loading="lazy">
+                {% endfor %}
+              </div>
+            {% endif %}
+
+          </div><!-- /.admin-card-body -->
+
+          <!-- Card actions -->
+          <div class="admin-card-actions">
+            <form method="POST" action="{{ url_for('approve_report', report_id=report.id) }}"
+                  style="margin:0;flex:1;" class="action-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="abtn abtn-verify" style="width:100%;">
+                ✅ موافقة
+              </button>
+            </form>
+
+            <form method="POST" action="{{ url_for('reject_report', report_id=report.id) }}"
+                  style="margin:0;flex:1;" class="action-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="button" class="abtn abtn-reject" style="width:100%;"
+                      onclick="confirmReject(this.closest('form'), '#{{ report.id }}')">
+                🚫 رفض
+              </button>
+            </form>
+          </div>
+
+        </article>
+      {% endfor %}
+    </div>
+
+  {% else %}
+
+    <!-- ── Empty state ──────────────────────────────────────── -->
+    <div class="admin-empty">
+      <span class="admin-empty-icon">🎉</span>
+      <h3>لا توجد بلاغات قديمة معلقة</h3>
+      <p>تمت مراجعة كل البلاغات القديمة. لا يوجد شيء ينتظرك هنا.</p>
+    </div>
+
+  {% endif %}
+
+</div><!-- /.container -->
+
+<!-- ── Reject confirmation modal ────────────────────────────── -->
+<div class="admin-confirm-overlay"
+     id="confirmOverlay"
+     style="display:none;"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="confirmTitle">
+  <div class="admin-confirm-box">
+    <div class="admin-confirm-icon">⚠️</div>
+    <h3 id="confirmTitle">تأكيد الرفض</h3>
+    <p id="confirmMsg">هل تريد رفض هذا البلاغ؟</p>
+    <div class="admin-confirm-actions">
+      <button class="admin-confirm-cancel" id="confirmCancel">إلغاء</button>
+      <button class="admin-confirm-proceed" id="confirmProceed">🚫 تأكيد الرفض</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Image lightbox ───────────────────────────────────────── -->
+<div class="admin-lightbox" id="adminLightbox" style="display:none;"
+     role="dialog" aria-modal="true" aria-label="عرض الصورة بحجم كبير">
+  <button class="admin-lightbox-close" id="lightboxClose" aria-label="إغلاق الصورة">✕</button>
+  <img src="" alt="صورة البلاغ" id="lightboxImg">
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* Reject confirmation */
+  var confirmOverlay = document.getElementById('confirmOverlay');
+  var confirmCancel  = document.getElementById('confirmCancel');
+  var confirmProceed = document.getElementById('confirmProceed');
+  var confirmMsg     = document.getElementById('confirmMsg');
+  var pendingForm    = null;
+
+  window.confirmReject = function (form, code) {
+    pendingForm = form;
+    if (confirmMsg) confirmMsg.textContent = 'هل تريد رفض البلاغ ' + code + '؟ لن يظهر على الخريطة.';
+    if (confirmOverlay) { confirmOverlay.style.display = 'flex'; if (confirmCancel) confirmCancel.focus(); }
+  };
+  if (confirmCancel) confirmCancel.addEventListener('click', function () {
+    confirmOverlay.style.display = 'none'; pendingForm = null;
+  });
+  if (confirmProceed) confirmProceed.addEventListener('click', function () {
+    if (pendingForm) { confirmProceed.disabled = true; confirmProceed.textContent = 'جارٍ الرفض…'; pendingForm.submit(); }
+    confirmOverlay.style.display = 'none';
+  });
+  if (confirmOverlay) confirmOverlay.addEventListener('click', function (e) {
+    if (e.target === confirmOverlay) { confirmOverlay.style.display = 'none'; pendingForm = null; }
+  });
+
+  /* Lightbox */
+  var lb = document.getElementById('adminLightbox');
+  var lbImg = document.getElementById('lightboxImg');
+  var lbClose = document.getElementById('lightboxClose');
+  window.openLightbox = function (src) {
+    if (!lb || !lbImg) return;
+    lbImg.src = src; lb.style.display = 'flex'; document.body.style.overflow = 'hidden';
+    if (lbClose) lbClose.focus();
+  };
+  function closeLb() { if (lb) lb.style.display = 'none'; document.body.style.overflow = ''; }
+  if (lbClose) lbClose.addEventListener('click', closeLb);
+  if (lb) lb.addEventListener('click', function (e) { if (e.target === lb) closeLb(); });
+
+  /* Loading state on submit */
+  document.querySelectorAll('.action-form').forEach(function (form) {
+    form.addEventListener('submit', function () {
+      var btn = form.querySelector('button[type="submit"]');
+      if (btn) { btn.disabled = true; btn.classList.add('is-loading'); btn.textContent = 'جارٍ…'; }
+    });
+  });
+
+  /* Escape closes modals */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' || e.keyCode === 27) {
+      if (lb && lb.style.display !== 'none') closeLb();
+      else if (confirmOverlay && confirmOverlay.style.display !== 'none') {
+        confirmOverlay.style.display = 'none'; pendingForm = null;
+      }
+    }
+  });
+})();
+</script>
+
+{% endblock %}

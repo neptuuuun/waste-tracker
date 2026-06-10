@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}دخول المشرف — Marine Waste Tracker{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-login-wrap">
+
+  <div class="admin-login-card">
+
+    <!-- Brand header -->
+    <div class="admin-login-brand">
+      <div class="admin-login-icon">🛡️</div>
+      <h1 class="admin-login-title">لوحة الإشراف</h1>
+      <p class="admin-login-sub">Marine Waste Tracker — نظام الإشراف والمراجعة</p>
+    </div>
+
+    <!-- Error message -->
+    {% if error %}
+      <div class="admin-login-error" role="alert">
+        <span>⚠️</span>
+        <span>كلمة المرور غير صحيحة. حاول مرة أخرى.</span>
+      </div>
+    {% endif %}
+
+    <!-- Login form -->
+    <form method="POST" action="{{ url_for('admin_login') }}" class="admin-login-form" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="alg-field">
+        <label class="alg-label" for="password">كلمة المرور</label>
+        <div class="alg-input-wrap">
+          <input
+            type="password"
+            id="password"
+            name="password"
+            class="alg-input"
+            autofocus
+            autocomplete="current-password"
+            required
+            placeholder="أدخل كلمة المرور"
+            aria-describedby="{% if error %}loginError{% endif %}"
+          >
+          <button type="button" class="alg-eye" id="togglePwd" aria-label="إظهار/إخفاء كلمة المرور" tabindex="0">
+            <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="alg-submit">
+        دخول
+      </button>
+    </form>
+
+  </div>
+
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('togglePwd');
+    var inp = document.getElementById('password');
+    var eyeOpen = document.getElementById('eyeOpen');
+    var eyeClosed = document.getElementById('eyeClosed');
+    if (!btn || !inp) return;
+    btn.addEventListener('click', function () {
+      var isHidden = inp.type === 'password';
+      inp.type = isHidden ? 'text' : 'password';
+      eyeOpen.style.display = isHidden ? 'none' : '';
+      eyeClosed.style.display = isHidden ? '' : 'none';
+    });
+  })();
+</script>
+{% endblock %}

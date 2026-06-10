@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{% if get_locale() == 'ar' %}الخريطة — Marine Waste Tracker{% else %}Map — Marine Waste Tracker{% endif %}{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Full-height map page */
+  #main-content { display: flex; flex-direction: column; height: calc(100vh - var(--nav-h)); }
+  .map-page-inner { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .map-section { flex: 1; display: flex; flex-direction: column; padding: 0; min-height: 0; }
+  .map-toolbar { border-radius: 0; border-left: none; border-right: none; border-top: none; }
+  #map { flex: 1; min-height: 500px; border-radius: 0; border: none; border-bottom: 1px solid var(--border); }
+  .map-legend { border-radius: 0; border-left: none; border-right: none; }
+  .site-footer { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="map-page-inner">
+
+  <!-- Page title bar -->
+  <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:0.6rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <div>
+      <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;">
+        {% if get_locale() == 'ar' %}خريطة التقارير الحية{% else %}Live Observations Map{% endif %}
+      </span>
+      <span style="color:var(--text-muted);font-size:0.8rem;margin-left:0.75rem;" id="mapObsCount">—</span>
+    </div>
+    <div style="display:flex;gap:0.5rem;align-items:center;">
+      <a href="{{ url_for('dashboard') }}" class="btn-map-ctrl" style="text-decoration:none;">
+        📊 {% if get_locale() == 'ar' %}لوحة البيانات{% else %}Dashboard{% endif %}
+      </a>
+      <a href="{{ url_for('data_page') }}" class="btn-map-ctrl" style="text-decoration:none;">
+        ⬇️ {% if get_locale() == 'ar' %}تنزيل{% else %}Export{% endif %}
+      </a>
+    </div>
+  </div>
+
+  <div class="map-section">
+
+    <!-- Toolbar / filters -->
+    <div class="map-toolbar">
+      <span class="map-toolbar-label">
+        {% if get_locale() == 'ar' %}تصفية{% else %}Filter{% endif %}
+      </span>
+
+      <select class="map-filter" id="filterCategory">
+        <option value="">{% if get_locale() == 'ar' %}كل الفئات{% else %}All categories{% endif %}</option>
+        {% for key, cat in waste_categories.items() %}
+          <option value="{{ key }}">{{ cat.emoji }} {{ cat.label_ar if get_locale() == 'ar' else cat.label_en }}</option>
+        {% endfor %}
+      </select>
+
+      <select class="map-filter" id="filterSeverity">
+        <option value="">{% if get_locale() == 'ar' %}كل الدرجات{% else %}All severities{% endif %}</option>
+        {% for key, sev in severities.items() %}
+          <option value="{{ key }}">{{ sev.label_ar if get_locale() == 'ar' else sev.label_en }}</option>
+        {% endfor %}
+      </select>
+
+      <select class="map-filter" id="filterEnvType">
+        <option value="">{% if get_locale() == 'ar' %}كل البيئات{% else %}All environments{% endif %}</option>
+        {% for key, env in environment_types.items() %}
+          <option value="{{ key }}">{{ env.emoji }} {{ env.label_ar if get_locale() == 'ar' else env.label_en }}</option>
+        {% endfor %}
+      </select>
+
+      <div style="display:flex;align-items:center;gap:0.3rem;">
+        <input type="date" class="map-date-input" id="filterFrom">
+        <span style="color:var(--text-faint);font-size:0.8rem;">—</span>
+        <input type="date" class="map-date-input" id="filterTo">
+      </div>
+
+      <div class="map-spacer"></div>
+
+      <button class="btn-map-ctrl" id="btnHeatmap">
+        🔥 {% if get_locale() == 'ar' %}خريطة الحرارة{% else %}Heatmap{% endif %}
+      </button>
+      <button class="btn-map-ctrl" id="btnResetFilters">
+        {% if get_locale() == 'ar' %}إعادة ضبط{% else %}Reset{% endif %}
+      </button>
+    </div>
+
+    <div id="map" role="application"
+         aria-label="{% if get_locale() == 'ar' %}خريطة تقارير التلوث البحري{% else %}Marine pollution reports map{% endif %}">
+    </div>
+
+    <div class="map-legend">
+      <span style="font-weight:700;color:var(--text-muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.07em;">
+        {% if get_locale() == 'ar' %}الخطورة:{% else %}Severity:{% endif %}
+      </span>
+      <span class="legend-item"><span class="legend-dot" style="background:#00e5a0;"></span>{% if get_locale() == 'ar' %}منخفضة{% else %}Low{% endif %}</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#ffd166;"></span>{% if get_locale() == 'ar' %}متوسطة{% else %}Medium{% endif %}</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#ff6b35;"></span>{% if get_locale() == 'ar' %}مرتفعة{% else %}High{% endif %}</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#ff3d5a;"></span>{% if get_locale() == 'ar' %}حرجة{% else %}Critical{% endif %}</span>
+      <span style="margin-left:auto;font-size:0.72rem;color:var(--text-faint);">
+        {% if get_locale() == 'ar' %}انقر على الخريطة للإبلاغ{% else %}Click map to submit a report{% endif %}
+      </span>
+    </div>
+
+  </div><!-- /.map-section -->
+</div><!-- /.map-page-inner -->
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/map_main.js') }}"></script>
+{% endblock %}

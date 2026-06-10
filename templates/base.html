@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale() }}" dir="{{ 'rtl' if get_locale() == 'ar' else 'ltr' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Marine Waste Tracker{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Noto+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+  <!-- CSRF token for AJAX requests -->
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<!-- ── Navbar ────────────────────────────────────────────────── -->
+<nav class="navbar" id="navbar">
+  <div class="nav-inner">
+    <a href="{{ url_for('index') }}" class="nav-logo">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="" class="nav-logo-img">
+      <span class="nav-logo-text">Marine Waste Tracker</span>
+    </a>
+
+    <input type="checkbox" id="nav-toggle" class="nav-toggle-input">
+    <label for="nav-toggle" class="nav-toggle-label" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </label>
+
+    <ul class="nav-links" role="list">
+      <li>
+        <a href="{{ url_for('map_page') }}"
+           class="nav-link{% if request.endpoint == 'map_page' %} active{% endif %}">
+          {% if get_locale() == 'ar' %}الخريطة{% else %}Map{% endif %}
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('dashboard') }}"
+           class="nav-link{% if request.endpoint == 'dashboard' %} active{% endif %}">
+          {% if get_locale() == 'ar' %}لوحة البيانات{% else %}Dashboard{% endif %}
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('data_page') }}"
+           class="nav-link{% if request.endpoint == 'data_page' %} active{% endif %}">
+          {% if get_locale() == 'ar' %}البيانات{% else %}Data{% endif %}
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('about') }}"
+           class="nav-link{% if request.endpoint == 'about' %} active{% endif %}">
+          {% if get_locale() == 'ar' %}حول{% else %}About{% endif %}
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('set_language', lang_code='en' if get_locale() == 'ar' else 'ar') }}?next={{ request.path }}"
+           class="lang-btn">
+          {% if get_locale() == 'ar' %}EN{% else %}عربي{% endif %}
+        </a>
+      </li>
+      <li>
+        <button class="nav-cta" id="navReportBtn">
+          📍 {% if get_locale() == 'ar' %}إبلاغ{% else %}Submit Report{% endif %}
+        </button>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ── Flash messages ────────────────────────────────────────── -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-messages">
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- ── Main ──────────────────────────────────────────────────── -->
+<main id="main-content">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- ── Report modal (global) ─────────────────────────────────── -->
+<div class="modal-overlay" id="reportModal" style="display:none;" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <button class="modal-close" id="modalClose" aria-label="Close">✕</button>
+
+    <!-- Step progress -->
+    <div class="modal-steps" id="modalSteps">
+      <div class="step-dot active" data-step="1">1</div>
+      <div class="step-line"></div>
+      <div class="step-dot" data-step="2">2</div>
+      <div class="step-line"></div>
+      <div class="step-dot" data-step="3">3</div>
+      <div class="step-line"></div>
+      <div class="step-dot" data-step="4">4</div>
+    </div>
+
+    <!-- ── Step 1: Location ── -->
+    <div class="modal-step" id="mStep1">
+      <h2 class="step-title">
+        {% if get_locale() == 'ar' %}📍 الموقع{% else %}📍 Location{% endif %}
+      </h2>
+
+      <div id="modalMap" style="height:230px;border-radius:4px;border:1px solid rgba(0,180,210,0.22);margin-bottom:0.9rem;"></div>
+
+      <div class="step-row">
+        <button class="btn-secondary btn-sm" id="btnGPS">
+          <i class="fas fa-location-crosshairs"></i>
+          {% if get_locale() == 'ar' %}موقعي الحالي{% else %}Use GPS{% endif %}
+        </button>
+        <span class="coord-display" id="coordDisplay">
+          {% if get_locale() == 'ar' %}انقر على الخريطة لتحديد الموقع{% else %}Click map to set location{% endif %}
+        </span>
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">
+          {% if get_locale() == 'ar' %}نوع البيئة{% else %}Environment type{% endif %}
+        </label>
+        <div class="env-grid" id="envGrid">
+          {% for key, env in environment_types.items() %}
+            <button type="button" class="env-btn" data-value="{{ key }}">
+              <span class="env-emoji">{{ env.emoji }}</span>
+              <span>{{ env.label_ar if get_locale() == 'ar' else env.label_en }}</span>
+            </button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label class="form-label" for="locationName">
+          {% if get_locale() == 'ar' %}اسم الموقع (اختياري){% else %}Location name (optional){% endif %}
+        </label>
+        <input type="text" id="locationName" class="form-input" maxlength="255"
+               placeholder="{% if get_locale() == 'ar' %}مثل: شاطئ سيدي فرج{% else %}e.g. Sidi Fredj beach{% endif %}">
+      </div>
+
+      <p class="step-error" id="step1Error" role="alert" style="display:none;color:#ff6b6b;font-size:0.84rem;margin:0.4rem 0 0;"></p>
+
+      <div class="step-nav" style="justify-content:flex-end;">
+        <button class="btn-primary" id="step1Next">
+          {% if get_locale() == 'ar' %}التالي{% else %}Next{% endif %} →
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Step 2: Waste Details ── -->
+    <div class="modal-step" id="mStep2" style="display:none;">
+      <h2 class="step-title">
+        {% if get_locale() == 'ar' %}🗑️ تفاصيل النفايات{% else %}🗑️ Waste Details{% endif %}
+      </h2>
+
+      <div class="form-row">
+        <label class="form-label">
+          {% if get_locale() == 'ar' %}فئة النفايات (MSFD){% else %}Waste category (MSFD){% endif %}
+        </label>
+        <div class="category-grid" id="categoryGrid">
+          {% for key, cat in waste_categories.items() %}
+            <button type="button" class="cat-btn" data-value="{{ key }}">
+              <span class="cat-emoji">{{ cat.emoji }}</span>
+              <span class="cat-label">{{ cat.label_ar if get_locale() == 'ar' else cat.label_en }}</span>
+            </button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label class="form-label" for="wasteSubcat">
+          {% if get_locale() == 'ar' %}الفئة الفرعية (اختياري){% else %}Subcategory (optional){% endif %}
+        </label>
+        <input type="text" id="wasteSubcat" class="form-input" maxlength="100"
+               placeholder="{% if get_locale() == 'ar' %}وصف أكثر دقة…{% else %}Be more specific…{% endif %}">
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">
+          {% if get_locale() == 'ar' %}الكمية التقديرية{% else %}Quantity estimate{% endif %}
+        </label>
+        <div class="qty-grid" id="qtyGrid">
+          {% for key, qty in quantity_estimates.items() %}
+            <button type="button" class="qty-btn" data-value="{{ key }}">
+              {{ qty.label_ar if get_locale() == 'ar' else qty.label_en }}
+            </button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">
+          {% if get_locale() == 'ar' %}درجة الخطورة{% else %}Severity{% endif %}
+        </label>
+        <div class="sev-grid" id="sevGrid">
+          {% for key, sev in severities.items() %}
+            <button type="button" class="sev-btn" data-value="{{ key }}"
+                    style="--sev-color:{{ sev.color }};">
+              {{ sev.label_ar if get_locale() == 'ar' else sev.label_en }}
+            </button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <p class="step-error" id="step2Error" role="alert" style="display:none;color:#ff6b6b;font-size:0.84rem;margin:0.4rem 0 0;"></p>
+
+      <div class="step-nav">
+        <button class="btn-ghost" id="step2Back">
+          ← {% if get_locale() == 'ar' %}رجوع{% else %}Back{% endif %}
+        </button>
+        <button class="btn-primary" id="step2Next">
+          {% if get_locale() == 'ar' %}التالي{% else %}Next{% endif %} →
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Step 3: Context ── -->
+    <div class="modal-step" id="mStep3" style="display:none;">
+      <h2 class="step-title">
+        {% if get_locale() == 'ar' %}📋 السياق{% else %}📋 Context{% endif %}
+      </h2>
+
+      <div class="form-row">
+        <label class="form-label">
+          {% if get_locale() == 'ar' %}دورك{% else %}Your role{% endif %}
+        </label>
+        <div class="role-grid" id="roleGrid">
+          {% for key, obs in observer_types.items() %}
+            <button type="button" class="role-btn" data-value="{{ key }}">
+              {{ obs.label_ar if get_locale() == 'ar' else obs.label_en }}
+            </button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label class="form-label" for="description">
+          {% if get_locale() == 'ar' %}الوصف (اختياري){% else %}Description (optional){% endif %}
+          <span class="char-count" id="descCount">0/500</span>
+        </label>
+        <textarea id="description" class="form-input" rows="3" maxlength="500"
+                  placeholder="{% if get_locale() == 'ar' %}صف ما رأيته…{% else %}Describe what you observed…{% endif %}"></textarea>
+      </div>
+
+      <div class="form-row-two">
+        <div>
+          <label class="form-label" for="weather">
+            {% if get_locale() == 'ar' %}الطقس{% else %}Weather{% endif %}
+          </label>
+          <select id="weather" class="form-input">
+            <option value="">—</option>
+            <option value="calm">{% if get_locale() == 'ar' %}هادئ{% else %}Calm{% endif %}</option>
+            <option value="windy">{% if get_locale() == 'ar' %}عاصف{% else %}Windy{% endif %}</option>
+            <option value="rainy">{% if get_locale() == 'ar' %}ممطر{% else %}Rainy{% endif %}</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label" for="cleanup">
+            {% if get_locale() == 'ar' %}التنظيف ممكن؟{% else %}Cleanup possible?{% endif %}
+          </label>
+          <select id="cleanup" class="form-input">
+            <option value="">—</option>
+            <option value="yes">{% if get_locale() == 'ar' %}نعم{% else %}Yes{% endif %}</option>
+            <option value="no">{% if get_locale() == 'ar' %}لا{% else %}No{% endif %}</option>
+            <option value="already_cleaned">{% if get_locale() == 'ar' %}تم بالفعل{% else %}Already cleaned{% endif %}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row-two">
+        <div>
+          <label class="form-label" for="obsName">
+            {% if get_locale() == 'ar' %}اسمك (اختياري){% else %}Your name (optional){% endif %}
+          </label>
+          <input type="text" id="obsName" class="form-input" maxlength="100">
+        </div>
+        <div>
+          <label class="form-label" for="obsEmail">
+            {% if get_locale() == 'ar' %}بريدك (اختياري){% else %}Email (optional){% endif %}
+          </label>
+          <input type="email" id="obsEmail" class="form-input" maxlength="255">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">
+          {% if get_locale() == 'ar' %}الصور (3 بحد أقصى، 5MB لكل واحدة){% else %}Photos (up to 3, max 5 MB each){% endif %}
+        </label>
+        <label class="photo-upload-label" for="photoInput">
+          <i class="fas fa-camera"></i>
+          {% if get_locale() == 'ar' %}أضف صورة{% else %}Add photos{% endif %}
+        </label>
+        <input type="file" id="photoInput" accept="image/*" multiple style="display:none;">
+        <div class="photo-preview" id="photoPreview"></div>
+      </div>
+
+      <p class="step-error" id="step3Error" role="alert" style="display:none;color:#ff6b6b;font-size:0.84rem;margin:0.4rem 0 0;"></p>
+
+      <div class="step-nav">
+        <button class="btn-ghost" id="step3Back">
+          ← {% if get_locale() == 'ar' %}رجوع{% else %}Back{% endif %}
+        </button>
+        <button class="btn-primary" id="step3Next">
+          {% if get_locale() == 'ar' %}مراجعة{% else %}Review{% endif %} →
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Step 4: Review & Submit ── -->
+    <div class="modal-step" id="mStep4" style="display:none;">
+      <h2 class="step-title">
+        {% if get_locale() == 'ar' %}✅ مراجعة وإرسال{% else %}✅ Review & Submit{% endif %}
+      </h2>
+      <div class="review-box" id="reviewBox"></div>
+      <p class="step-error" id="step4Error" role="alert" style="display:none;color:#ff6b6b;font-size:0.84rem;margin:0.4rem 0 0;"></p>
+      <div class="step-nav">
+        <button class="btn-ghost" id="step4Back">
+          ← {% if get_locale() == 'ar' %}رجوع{% else %}Back{% endif %}
+        </button>
+        <button class="btn-submit" id="btnSubmit">
+          {% if get_locale() == 'ar' %}إرسال التقرير{% else %}Submit Report{% endif %}
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Success screen ── -->
+    <div class="modal-step" id="mSuccess" style="display:none;">
+      <div class="success-screen">
+        <div class="success-icon">✅</div>
+        <h2>{% if get_locale() == 'ar' %}شكراً!{% else %}Thank you!{% endif %}</h2>
+        <p class="success-sub">
+          {% if get_locale() == 'ar' %}تقريرك قيد المراجعة وسيظهر على الخريطة قريباً{% else %}Your report is under review and will appear on the map soon{% endif %}
+        </p>
+        <div class="report-code-box" id="successCode"></div>
+        <div class="success-actions">
+          <button class="btn-secondary" id="btnCopyCode">
+            <i class="fas fa-copy"></i>
+            {% if get_locale() == 'ar' %}نسخ الرمز{% else %}Copy code{% endif %}
+          </button>
+          <button class="btn-ghost" id="btnAnotherReport">
+            {% if get_locale() == 'ar' %}تقرير آخر{% else %}Add another{% endif %}
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.modal-box -->
+</div><!-- /.modal-overlay -->
+
+<!-- FAB -->
+<button class="fab" id="fabReport" aria-label="Submit pollution report">
+  <i class="fas fa-plus"></i>
+</button>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span>Marine Waste Tracker © 2025 — Maroua Benzaoui</span>
+    <span>
+      {% if get_locale() == 'ar' %}البيانات تحت رخصة{% else %}Data licensed under{% endif %}
+      <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>
+    </span>
+    <span>
+      <a href="{{ url_for('admin_login') }}">{% if get_locale() == 'ar' %}لوحة الإدارة{% else %}Admin{% endif %}</a>
+    </span>
+  </div>
+</footer>
+
+<!-- Leaflet + plugins -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+<!-- Pass server-side data to JS -->
+<script>
+  const MWT = {
+    locale: "{{ get_locale() }}",
+    isRTL: {{ 'true' if get_locale() == 'ar' else 'false' }},
+    csrfToken: "{{ csrf_token() }}",
+    wasteCategories: {{ waste_categories | tojson }},
+    environmentTypes: {{ environment_types | tojson }},
+    observerTypes: {{ observer_types | tojson }},
+    severities: {{ severities | tojson }},
+    quantityEstimates: {{ quantity_estimates | tojson }},
+  };
+</script>
+
+<!-- Report modal JS (always loaded) -->
+<script src="{{ url_for('static', filename='js/report_modal.js') }}"></script>
+
+<!-- Navbar mobile close + FAB/CTA wiring -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const navToggle = document.getElementById('nav-toggle');
+    document.querySelectorAll('.nav-link, .lang-btn').forEach(el => {
+      el.addEventListener('click', () => { if (navToggle) navToggle.checked = false; });
+    });
+    const openModal = () => window.reportModal && window.reportModal.open();
+    document.getElementById('navReportBtn')?.addEventListener('click', openModal);
+    document.getElementById('fabReport')?.addEventListener('click', openModal);
+  });
+</script>
+
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

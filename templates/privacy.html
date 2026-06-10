@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{% if get_locale() == 'ar' %}سياسة الخصوصية{% else %}Privacy Policy{% endif %} — Marine Waste Tracker{% endblock %}
+{% block content %}
+<div class="prose-page" style="max-width:680px;">
+  <h1>{% if get_locale() == 'ar' %}سياسة الخصوصية{% else %}Privacy Policy{% endif %}</h1>
+  <p class="prose-subtitle">{% if get_locale() == 'ar' %}آخر تحديث: يونيو 2025{% else %}Last updated: June 2025{% endif %}</p>
+
+  <div class="prose-section">
+    <h2>{% if get_locale() == 'ar' %}ما الذي نجمعه{% else %}What we collect{% endif %}</h2>
+    <ul>
+      <li>{% if get_locale() == 'ar' %}الإحداثيات الجغرافية التي تختارها عند تقديم تقرير{% else %}Coordinates you choose when submitting a report{% endif %}</li>
+      <li>{% if get_locale() == 'ar' %}الاسم والبريد الإلكتروني — اختياريان فقط{% else %}Name and email — entirely optional{% endif %}</li>
+      <li>{% if get_locale() == 'ar' %}عنوان IP لمنع الإساءة{% else %}IP address for abuse prevention{% endif %}</li>
+      <li>{% if get_locale() == 'ar' %}الصور التي ترفعها (تُخزَّن على الخادم){% else %}Photos you upload (stored on the server){% endif %}</li>
+    </ul>
+  </div>
+
+  <div class="prose-section">
+    <h2>{% if get_locale() == 'ar' %}كيف نستخدم البيانات{% else %}How we use data{% endif %}</h2>
+    <p>{% if get_locale() == 'ar' %}تُستخدم البيانات حصراً لعرض الملاحظات على الخريطة وإتاحتها للبحث العلمي بموجب رخصة CC BY 4.0. لا نبيع أي بيانات ولا نشاركها مع أطراف تجارية.{% else %}Data is used solely to display observations on the map and make them available for scientific research under CC BY 4.0. We do not sell or share data with commercial parties.{% endif %}</p>
+  </div>
+
+  <div class="prose-section">
+    <h2>{% if get_locale() == 'ar' %}ملفات تعريف الارتباط{% else %}Cookies{% endif %}</h2>
+    <p>{% if get_locale() == 'ar' %}نستخدم ملف تعريف ارتباط واحد للجلسة لتذكر تفضيلات اللغة. لا توجد كوكيز إعلانية.{% else %}We use one session cookie to remember your language preference. No advertising cookies.{% endif %}</p>
+  </div>
+
+  <div class="prose-section">
+    <h2>{% if get_locale() == 'ar' %}تواصل معنا{% else %}Contact{% endif %}</h2>
+    <p><a href="mailto:maroua.benzaoui@enssmal.edu.com">maroua.benzaoui@enssmal.edu.com</a></p>
+  </div>
+</div>
+{% endblock %}

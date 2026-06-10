@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}{{ observation.report_code() }} — Marine Waste Tracker{% endblock %}
+
+{% block extra_head %}
+<style>
+  .report-detail { max-width: 720px; margin: 2.5rem auto; padding: 0 1rem 4rem; }
+  .rd-code       { font-family: monospace; font-size: 0.85rem; color: var(--cyan); background: rgba(0,200,232,0.08);
+                   border: 1px solid rgba(0,200,232,0.22); padding: 0.25rem 0.65rem; border-radius: 4px; }
+  .rd-header     { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .rd-title      { font-size: 1.5rem; font-weight: 700; margin: 0; }
+  .rd-grid       { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+  .rd-card       { background: var(--surface); border: 1px solid var(--border-md); border-radius: 8px;
+                   padding: 0.9rem 1.1rem; }
+  .rd-card-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em;
+                   color: var(--text-faint); margin-bottom: 0.3rem; }
+  .rd-card-value { font-size: 0.95rem; color: var(--text); font-weight: 500; }
+  .rd-map        { height: 260px; border-radius: 8px; border: 1px solid var(--border-md);
+                   margin-bottom: 1.5rem; overflow: hidden; }
+  .rd-desc       { background: var(--surface); border: 1px solid var(--border-md); border-radius: 8px;
+                   padding: 0.9rem 1.1rem; margin-bottom: 1.5rem; font-size: 0.9rem;
+                   line-height: 1.6; color: var(--text-muted); }
+  .rd-photos     { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .rd-photo      { width: 130px; height: 100px; object-fit: cover; border-radius: 6px;
+                   border: 1px solid var(--border-md); }
+  .rd-status     { display: inline-block; padding: 0.3rem 0.75rem; border-radius: 20px;
+                   font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+  .status-verified  { background: rgba(0,229,160,0.12); color: #00e5a0; border: 1px solid rgba(0,229,160,0.3); }
+  .status-pending   { background: rgba(255,209,102,0.12); color: #ffd166; border: 1px solid rgba(255,209,102,0.3); }
+  .status-resolved  { background: rgba(106,154,176,0.12); color: var(--text-muted); border: 1px solid var(--border-md); }
+  .status-duplicate { background: rgba(255,61,90,0.1);   color: #ff3d5a; border: 1px solid rgba(255,61,90,0.3); }
+  .rd-back       { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--text-muted);
+                   font-size: 0.85rem; text-decoration: none; margin-bottom: 1.25rem; }
+  .rd-back:hover { color: var(--cyan); }
+  @media (max-width: 540px) { .rd-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set cat = waste_categories.get(observation.waste_category, {}) %}
+{% set env = environment_types.get(observation.environment_type or '', {}) %}
+{% set sev = severities.get(observation.severity, {}) %}
+{% set obs = observer_types.get(observation.observer_type or '', {}) %}
+{% set qty = quantity_estimates.get(observation.quantity_estimate or '', {}) %}
+{% set sev_color = sev.color or '#6a9ab0' %}
+
+<div class="report-detail">
+
+  <a href="{{ url_for('map_page') }}" class="rd-back">← Back to map</a>
+
+  <div class="rd-header">
+    <h1 class="rd-title">
+      {{ cat.emoji or '' }}
+      {{ cat.label_ar if get_locale() == 'ar' else cat.label_en or observation.waste_category }}
+    </h1>
+    <span class="rd-code">{{ observation.report_code() }}</span>
+    <span class="rd-status status-{{ observation.status }}">{{ observation.status }}</span>
+  </div>
+
+  <!-- Mini map -->
+  <div id="rdMap" class="rd-map"></div>
+
+  <!-- Detail grid -->
+  <div class="rd-grid">
+    <div class="rd-card">
+      <div class="rd-card-label">{% if get_locale() == 'ar' %}الخطورة{% else %}Severity{% endif %}</div>
+      <div class="rd-card-value" style="color:{{ sev_color }};">
+        {{ sev.label_ar if get_locale() == 'ar' else sev.label_en or observation.severity }}
+      </div>
+    </div>
+    <div class="rd-card">
+      <div class="rd-card-label">{% if get_locale() == 'ar' %}البيئة{% else %}Environment{% endif %}</div>
+      <div class="rd-card-value">
+        {{ env.emoji or '' }}
+        {{ env.label_ar if get_locale() == 'ar' else env.label_en or (observation.environment_type or '—') }}
+      </div>
+    </div>
+    <div class="rd-card">
+      <div class="rd-card-label">{% if get_locale() == 'ar' %}الكمية{% else %}Quantity{% endif %}</div>
+      <div class="rd-card-value">
+        {{ qty.label_ar if get_locale() == 'ar' else qty.label_en or (observation.quantity_estimate or '—') }}
+      </div>
+    </div>
+    <div class="rd-card">
+      <div class="rd-card-label">{% if get_locale() == 'ar' %}دور المراقب{% else %}Observer role{% endif %}</div>
+      <div class="rd-card-value">
+        {{ obs.label_ar if get_locale() == 'ar' else obs.label_en or (observation.observer_type or '—') }}
+      </div>
+    </div>
+    <div class="rd-card">
+      <div class="rd-card-label">{% if get_locale() == 'ar' %}الموقع{% else %}Location{% endif %}</div>
+      <div class="rd-card-value">
+        {% if observation.location_name %}{{ observation.location_name }}<br>{% endif %}
+        <code style="font-size:0.8rem;color:var(--text-faint);">
+          {{ '%.5f' % observation.latitude }}, {{ '%.5f' % observation.longitude }}
+        </code>
+      </div>
+    </div>
+    <div class="rd-card">
+      <div class="rd-card-label">{% if get_locale() == 'ar' %}التاريخ{% else %}Date{% endif %}</div>
+      <div class="rd-card-value">
+        {{ observation.created_at.strftime('%d %b %Y') if observation.created_at else '—' }}
+      </div>
+    </div>
+    {% if observation.weather_conditions %}
+    <div class="rd-card">
+      <div class="rd-card-label">{% if get_locale() == 'ar' %}الطقس{% else %}Weather{% endif %}</div>
+      <div class="rd-card-value">{{ observation.weather_conditions }}</div>
+    </div>
+    {% endif %}
+    {% if observation.cleanup_possible %}
+    <div class="rd-card">
+      <div class="rd-card-label">{% if get_locale() == 'ar' %}التنظيف ممكن؟{% else %}Cleanup possible?{% endif %}</div>
+      <div class="rd-card-value">{{ observation.cleanup_possible }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if observation.description %}
+  <div class="rd-desc">{{ observation.description }}</div>
+  {% endif %}
+
+  {% if observation.images %}
+  <div class="rd-photos">
+    {% for img in observation.images %}
+      <img class="rd-photo"
+           src="{{ url_for('uploaded_file', filename=img.image_path) }}"
+           alt="Observation photo {{ loop.index }}"
+           loading="lazy">
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var lat = {{ observation.latitude }};
+    var lng = {{ observation.longitude }};
+    var sevColor = {{ observation.severity | tojson }};
+    var color = { low:'#00e5a0', medium:'#ffd166', high:'#ff6b35', critical:'#ff3d5a' }[sevColor] || '#6a9ab0';
+
+    var map = L.map('rdMap', {
+      center: [lat, lng],
+      zoom: 10,
+      zoomControl: true,
+      attributionControl: false,
+      scrollWheelZoom: false,
+    });
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      subdomains: 'abcd', maxZoom: 18,
+    }).addTo(map);
+    L.circleMarker([lat, lng], {
+      radius: 9, color: color, fillColor: color, fillOpacity: 0.85, weight: 2,
+    }).addTo(map);
+  });
+</script>
+{% endblock %}

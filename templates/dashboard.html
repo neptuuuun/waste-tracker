@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}{% if get_locale() == 'ar' %}لوحة البيانات — Marine Waste Tracker{% else %}Dashboard — Marine Waste Tracker{% endif %}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top:2.5rem;padding-bottom:4rem;">
+
+  <!-- Header -->
+  <div style="margin-bottom:2rem;">
+    <h1 style="font-size:1.75rem;margin-bottom:0.3rem;">
+      {% if get_locale() == 'ar' %}لوحة البيانات التحليلية{% else %}Analytics Dashboard{% endif %}
+    </h1>
+    <p style="color:var(--text-muted);font-size:0.9rem;">
+      {% if get_locale() == 'ar' %}إحصائيات مستمدة من قاعدة البيانات المباشرة{% else %}Live statistics from the observation database{% endif %}
+    </p>
+  </div>
+
+  <!-- KPI cards -->
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi-card">
+      <div class="kpi-icon">🗺️</div>
+      <span class="kpi-value" id="kpi-total">—</span>
+      <span class="kpi-label">{% if get_locale() == 'ar' %}إجمالي الملاحظات{% else %}Total Observations{% endif %}</span>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">📅</div>
+      <span class="kpi-value" id="kpi-month">—</span>
+      <span class="kpi-label">{% if get_locale() == 'ar' %}هذا الشهر{% else %}This Month{% endif %}</span>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon" id="kpi-top-icon">📦</div>
+      <span class="kpi-value" id="kpi-top-cat" style="font-size:0.95rem;">—</span>
+      <span class="kpi-label">{% if get_locale() == 'ar' %}الفئة الأكثر إبلاغاً{% else %}Most Reported Type{% endif %}</span>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">📍</div>
+      <span class="kpi-value" id="kpi-hotspots">—</span>
+      <span class="kpi-label">{% if get_locale() == 'ar' %}مناطق ساخنة{% else %}Hotspot Areas{% endif %}</span>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">⏳</div>
+      <span class="kpi-value" id="kpi-pending">—</span>
+      <span class="kpi-label">{% if get_locale() == 'ar' %}قيد المراجعة{% else %}Awaiting Review{% endif %}</span>
+    </div>
+  </div>
+
+  <!-- Charts row 1 -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <p class="chart-title">{% if get_locale() == 'ar' %}الملاحظات حسب الفئة{% else %}Observations by Category{% endif %}</p>
+      <canvas id="chartCategory" style="max-height:260px;"></canvas>
+    </div>
+    <div class="chart-card">
+      <p class="chart-title">{% if get_locale() == 'ar' %}الاتجاه على مدى 12 شهراً{% else %}Trend — Last 12 Months{% endif %}</p>
+      <canvas id="chartTrend" style="max-height:260px;"></canvas>
+    </div>
+    <div class="chart-card">
+      <p class="chart-title">{% if get_locale() == 'ar' %}توزيع الخطورة{% else %}Severity Distribution{% endif %}</p>
+      <canvas id="chartSeverity" style="max-height:260px;"></canvas>
+    </div>
+    <div class="chart-card">
+      <p class="chart-title">{% if get_locale() == 'ar' %}الملاحظات حسب نوع البيئة{% else %}Observations by Environment{% endif %}</p>
+      <canvas id="chartEnv" style="max-height:260px;"></canvas>
+    </div>
+  </div>
+
+  <!-- Hotspots table -->
+  <div style="margin-bottom:1.5rem;">
+    <h2 style="font-size:1rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.85rem;">
+      {% if get_locale() == 'ar' %}أبرز المناطق الساخنة{% else %}Top Hotspot Areas{% endif %}
+    </h2>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>{% if get_locale() == 'ar' %}خط العرض{% else %}Latitude{% endif %}</th>
+            <th>{% if get_locale() == 'ar' %}خط الطول{% else %}Longitude{% endif %}</th>
+            <th>{% if get_locale() == 'ar' %}عدد الملاحظات{% else %}Observations{% endif %}</th>
+          </tr>
+        </thead>
+        <tbody id="hotspotsBody">
+          <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">
+            {% if get_locale() == 'ar' %}جارٍ التحميل…{% else %}Loading…{% endif %}
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent observations -->
+  <div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.85rem;">
+      <h2 style="font-size:1rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">
+        {% if get_locale() == 'ar' %}آخر الملاحظات{% else %}Recent Observations{% endif %}
+      </h2>
+      <a href="{{ url_for('data_page') }}" class="btn-secondary btn-sm">
+        {% if get_locale() == 'ar' %}تنزيل CSV{% else %}Download CSV{% endif %}
+      </a>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>{% if get_locale() == 'ar' %}الرمز{% else %}Code{% endif %}</th>
+            <th>{% if get_locale() == 'ar' %}التاريخ{% else %}Date{% endif %}</th>
+            <th>{% if get_locale() == 'ar' %}الفئة{% else %}Category{% endif %}</th>
+            <th>{% if get_locale() == 'ar' %}الخطورة{% else %}Severity{% endif %}</th>
+            <th>{% if get_locale() == 'ar' %}البيئة{% else %}Environment{% endif %}</th>
+            <th>{% if get_locale() == 'ar' %}المُبلِّغ{% else %}Observer{% endif %}</th>
+            <th>{% if get_locale() == 'ar' %}الحالة{% else %}Status{% endif %}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="recentBody">
+          <tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:1.5rem;">
+            {% if get_locale() == 'ar' %}جارٍ التحميل…{% else %}Loading…{% endif %}
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const DASH_LOCALE = "{{ get_locale() }}";
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

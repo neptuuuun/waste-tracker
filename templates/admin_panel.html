@@ -1,0 +1,705 @@
+{% extends "base.html" %}
+{% block title %}لوحة الإشراف — Marine Waste Tracker{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top:1.75rem;padding-bottom:4rem;">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="admin-page-header">
+    <div class="admin-page-title-group">
+      <h1>🛡️ لوحة الإشراف</h1>
+      <p>مراجعة وإدارة بلاغات النفايات البحرية المقدّمة</p>
+    </div>
+    <div class="admin-header-actions">
+      <a href="{{ url_for('admin_logout') }}" class="btn-danger btn-sm"
+         style="min-height:38px;display:inline-flex;align-items:center;">
+        خروج
+      </a>
+    </div>
+  </div>
+
+  <!-- ── Stats bar — clickable shortcut to each status ─────── -->
+  <div class="admin-stats-bar">
+    <a href="{{ url_for('admin_panel') }}?status=pending"
+       class="admin-stat-card{% if status_filter == 'pending' %} active{% endif %}"
+       aria-label="البلاغات المعلقة: {{ counts.get('pending', 0) }}">
+      <span class="admin-stat-count asc-pending">{{ counts.get('pending', 0) }}</span>
+      <span class="admin-stat-label">⏳ معلقة</span>
+    </a>
+    <a href="{{ url_for('admin_panel') }}?status=verified"
+       class="admin-stat-card{% if status_filter == 'verified' %} active{% endif %}"
+       aria-label="البلاغات الموثقة: {{ counts.get('verified', 0) }}">
+      <span class="admin-stat-count asc-verified">{{ counts.get('verified', 0) }}</span>
+      <span class="admin-stat-label">✅ موثقة</span>
+    </a>
+    <a href="{{ url_for('admin_panel') }}?status=resolved"
+       class="admin-stat-card{% if status_filter == 'resolved' %} active{% endif %}"
+       aria-label="البلاغات المحلولة: {{ counts.get('resolved', 0) }}">
+      <span class="admin-stat-count asc-resolved">{{ counts.get('resolved', 0) }}</span>
+      <span class="admin-stat-label">🧹 محلولة</span>
+    </a>
+    <a href="{{ url_for('admin_panel') }}?status=duplicate"
+       class="admin-stat-card{% if status_filter == 'duplicate' %} active{% endif %}"
+       aria-label="البلاغات المرفوضة: {{ counts.get('duplicate', 0) }}">
+      <span class="admin-stat-count asc-duplicate">{{ counts.get('duplicate', 0) }}</span>
+      <span class="admin-stat-label">🚫 مرفوضة</span>
+    </a>
+  </div>
+
+  <!-- ── Search & per-page toolbar ──────────────────────────── -->
+  <div class="admin-toolbar">
+    <div class="admin-search-wrap">
+      <span class="admin-search-icon" aria-hidden="true">🔍</span>
+      <input type="search"
+             class="admin-search"
+             id="adminSearch"
+             placeholder="بحث بالرمز، الموقع، أو الوصف…"
+             aria-label="بحث في البلاغات"
+             autocomplete="off">
+    </div>
+    <select class="admin-per-page" id="adminPerPage" aria-label="عدد البلاغات في الصفحة">
+      <option value="25">25 لكل صفحة</option>
+      <option value="50">50 لكل صفحة</option>
+      <option value="100">100 لكل صفحة</option>
+    </select>
+  </div>
+
+  <!-- ── Status tabs ─────────────────────────────────────────── -->
+  <div class="admin-tabs" role="tablist">
+    {% for s, label, icon in [
+      ('pending',   'المعلقة',   '⏳'),
+      ('verified',  'الموثقة',   '✅'),
+      ('resolved',  'المحلولة',  '🧹'),
+      ('duplicate', 'المرفوضة',  '🚫'),
+    ] %}
+      <a href="{{ url_for('admin_panel') }}?status={{ s }}"
+         class="admin-tab{% if status_filter == s %} active{% endif %}"
+         role="tab"
+         aria-selected="{{ 'true' if status_filter == s else 'false' }}">
+        {{ icon }} {{ label }}
+        <span class="tab-badge">{{ counts.get(s, 0) }}</span>
+      </a>
+    {% endfor %}
+  </div>
+
+  {% if observations %}
+
+    <!-- ══ DESKTOP TABLE VIEW ══════════════════════════════════ -->
+    <div class="admin-table-view">
+      <div class="admin-table-wrap">
+        <table class="admin-table" id="adminTable" aria-label="قائمة البلاغات">
+          <thead>
+            <tr>
+              <th scope="col">الرمز والتاريخ</th>
+              <th scope="col">الفئة والبيئة</th>
+              <th scope="col">الخطورة</th>
+              <th scope="col">الموقع</th>
+              <th scope="col">الوصف</th>
+              <th scope="col">الصور</th>
+              <th scope="col">الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="adminTableBody">
+            {% for o in observations %}
+              {%- set cat  = waste_categories.get(o.waste_category, {}) -%}
+              {%- set env  = environment_types.get(o.environment_type or '', {}) -%}
+              {%- set sev  = severities.get(o.severity, {}) -%}
+              <tr class="obs-row"
+                  data-searchable="{{ [o.report_code(), o.location_name or '', o.description or ''] | join(' ') | lower }}">
+
+                <!-- Code + Date -->
+                <td>
+                  <span class="td-code-text">{{ o.report_code() }}</span>
+                  <span class="td-code-date">
+                    {{ o.created_at.strftime('%Y-%m-%d') if o.created_at else '—' }}
+                  </span>
+                </td>
+
+                <!-- Category + Environment -->
+                <td>
+                  <span class="td-cat-name">
+                    {{ cat.emoji or '' }} {{ cat.label_ar or o.waste_category }}
+                  </span>
+                  {% if env and env.label_ar %}
+                    <span class="td-cat-env">{{ env.emoji or '' }} {{ env.label_ar }}</span>
+                  {% endif %}
+                </td>
+
+                <!-- Severity -->
+                <td>
+                  <span class="sev-pill sev-pill-{{ o.severity }}">
+                    {{ sev.label_ar or o.severity }}
+                  </span>
+                </td>
+
+                <!-- Location -->
+                <td>
+                  {% if o.location_name %}
+                    <span class="td-location-name" title="{{ o.location_name }}">
+                      📍 {{ o.location_name }}
+                    </span>
+                  {% endif %}
+                  <span class="td-location-coords" dir="ltr">
+                    {{ '%.4f'|format(o.latitude) }}, {{ '%.4f'|format(o.longitude) }}
+                  </span>
+                </td>
+
+                <!-- Description (click to expand) -->
+                <td class="td-desc-cell">
+                  {% if o.description %}
+                    <span class="td-desc-text"
+                          title="انقر لعرض الوصف الكامل"
+                          onclick="showDesc('{{ o.description | replace("'", "\\'") | replace('\n', '\\n') }}')">
+                      {{ o.description }}
+                    </span>
+                  {% else %}
+                    <span class="td-desc-empty">—</span>
+                  {% endif %}
+                </td>
+
+                <!-- Photos -->
+                <td>
+                  {% if o.images %}
+                    {% for img in o.images[:2] %}
+                      <img src="{{ url_for('uploaded_file', filename=img.image_path) }}"
+                           alt="صورة البلاغ {{ loop.index }}"
+                           class="td-photo-thumb"
+                           onclick="openLightbox(this.src)"
+                           loading="lazy">
+                    {% endfor %}
+                    {% if o.images | length > 2 %}
+                      <span class="td-photo-more">+{{ o.images | length - 2 }}</span>
+                    {% endif %}
+                  {% else %}
+                    <span style="color:var(--text-faint);font-size:0.78rem;">—</span>
+                  {% endif %}
+                </td>
+
+                <!-- Actions -->
+                <td>
+                  <div class="td-actions-wrap">
+                    {% if o.status != 'verified' %}
+                      <form method="POST" action="{{ url_for('admin_verify', obs_id=o.id) }}"
+                            style="margin:0;" class="action-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="abtn abtn-verify"
+                                title="توثيق البلاغ وإظهاره على الخريطة">
+                          ✅ تحقق
+                        </button>
+                      </form>
+                    {% endif %}
+
+                    {% if o.status not in ('duplicate', 'rejected') %}
+                      <form method="POST" action="{{ url_for('admin_reject', obs_id=o.id) }}"
+                            style="margin:0;" class="action-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="button" class="abtn abtn-reject"
+                                title="رفض البلاغ أو تصنيفه كمكرر"
+                                onclick="confirmReject(this.closest('form'), '{{ o.report_code() }}')">
+                          🚫 رفض
+                        </button>
+                      </form>
+                    {% endif %}
+
+                    {% if o.status == 'verified' %}
+                      <form method="POST" action="{{ url_for('admin_resolve', obs_id=o.id) }}"
+                            style="margin:0;" class="action-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="abtn abtn-resolve"
+                                title="تصنيف البلاغ كمحلول">
+                          🧹 حُلّت
+                        </button>
+                      </form>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div><!-- /.admin-table-view -->
+
+    <!-- ══ MOBILE CARDS VIEW ═══════════════════════════════════ -->
+    <div class="admin-cards-view">
+      <div class="admin-cards" id="adminCards">
+        {% for o in observations %}
+          {%- set cat = waste_categories.get(o.waste_category, {}) -%}
+          {%- set env = environment_types.get(o.environment_type or '', {}) -%}
+          {%- set sev = severities.get(o.severity, {}) -%}
+          <article class="admin-card obs-card"
+                   data-searchable="{{ [o.report_code(), o.location_name or '', o.description or ''] | join(' ') | lower }}">
+
+            <!-- Card header -->
+            <div class="admin-card-header">
+              <span class="admin-card-code">{{ o.report_code() }}</span>
+              <span class="admin-card-date">
+                {{ o.created_at.strftime('%Y-%m-%d') if o.created_at else '—' }}
+              </span>
+            </div>
+
+            <!-- Card body -->
+            <div class="admin-card-body">
+
+              <!-- Category + Severity row -->
+              <div class="admin-card-meta-row">
+                <span class="admin-card-cat">
+                  {{ cat.emoji or '' }} {{ cat.label_ar or o.waste_category }}
+                </span>
+                <span class="sev-pill sev-pill-{{ o.severity }}">
+                  {{ sev.label_ar or o.severity }}
+                </span>
+              </div>
+
+              <!-- Environment type -->
+              {% if env and env.label_ar %}
+                <div style="font-size:0.8rem;color:var(--text-muted);">
+                  {{ env.emoji or '' }} {{ env.label_ar }}
+                </div>
+              {% endif %}
+
+              <!-- Location -->
+              {% if o.location_name %}
+                <div class="admin-card-location">📍 {{ o.location_name }}</div>
+              {% else %}
+                <div class="admin-card-location" dir="ltr" style="text-align:right;">
+                  {{ '%.4f'|format(o.latitude) }}, {{ '%.4f'|format(o.longitude) }}
+                </div>
+              {% endif %}
+
+              <!-- Description -->
+              {% if o.description %}
+                <div class="admin-card-desc">{{ o.description }}</div>
+              {% endif %}
+
+              <!-- Photos -->
+              {% if o.images %}
+                <div class="admin-card-photos">
+                  {% for img in o.images %}
+                    <img src="{{ url_for('uploaded_file', filename=img.image_path) }}"
+                         alt="صورة البلاغ {{ loop.index }}"
+                         class="admin-card-photo"
+                         onclick="openLightbox(this.src)"
+                         loading="lazy">
+                  {% endfor %}
+                </div>
+              {% endif %}
+
+            </div><!-- /.admin-card-body -->
+
+            <!-- Card action buttons -->
+            <div class="admin-card-actions">
+              {% if o.status != 'verified' %}
+                <form method="POST" action="{{ url_for('admin_verify', obs_id=o.id) }}"
+                      style="margin:0;flex:1;" class="action-form">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="abtn abtn-verify" style="width:100%;">
+                    ✅ تحقق
+                  </button>
+                </form>
+              {% endif %}
+
+              {% if o.status not in ('duplicate', 'rejected') %}
+                <form method="POST" action="{{ url_for('admin_reject', obs_id=o.id) }}"
+                      style="margin:0;flex:1;" class="action-form">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="button" class="abtn abtn-reject" style="width:100%;"
+                          onclick="confirmReject(this.closest('form'), '{{ o.report_code() }}')">
+                    🚫 رفض
+                  </button>
+                </form>
+              {% endif %}
+
+              {% if o.status == 'verified' %}
+                <form method="POST" action="{{ url_for('admin_resolve', obs_id=o.id) }}"
+                      style="margin:0;flex:1;" class="action-form">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="abtn abtn-resolve" style="width:100%;">
+                    🧹 حُلّت
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+
+          </article>
+        {% endfor %}
+      </div><!-- /#adminCards -->
+    </div><!-- /.admin-cards-view -->
+
+    <!-- ── Pagination ──────────────────────────────────────── -->
+    <div class="admin-pagination" id="adminPagination">
+      <span class="admin-pagination-info" id="paginationInfo" aria-live="polite"></span>
+      <div class="admin-pagination-controls" id="paginationControls" role="navigation" aria-label="التنقل بين الصفحات"></div>
+    </div>
+
+    <!-- ── No search results state ────────────────────────── -->
+    <div class="admin-empty" id="noResults" style="display:none;" aria-live="polite">
+      <span class="admin-empty-icon">🔍</span>
+      <h3>لا توجد نتائج</h3>
+      <p>لم يتم العثور على بلاغات تطابق بحثك. جرّب كلمات مختلفة.</p>
+    </div>
+
+  {% else %}
+
+    <!-- ── Empty state (no observations in this status) ─────── -->
+    <div class="admin-empty">
+      <span class="admin-empty-icon">
+        {%- if status_filter == 'pending' %}⏳
+        {%- elif status_filter == 'verified' %}✅
+        {%- elif status_filter == 'resolved' %}🧹
+        {%- else %}🚫{%- endif %}
+      </span>
+      <h3>
+        {%- if status_filter == 'pending'   %}لا توجد بلاغات معلقة
+        {%- elif status_filter == 'verified' %}لا توجد بلاغات موثقة
+        {%- elif status_filter == 'resolved' %}لا توجد بلاغات محلولة
+        {%- else %}لا توجد بلاغات مرفوضة{%- endif %}
+      </h3>
+      <p>
+        {%- if status_filter == 'pending' %}
+          رائع! لا يوجد شيء ينتظر مراجعتك الآن.
+        {%- else %}
+          لا توجد بلاغات في هذه الحالة حالياً.
+        {%- endif %}
+      </p>
+    </div>
+
+  {% endif %}
+
+</div><!-- /.container -->
+
+<!-- ════════════════════════════════════════════════════════════
+     CONFIRM REJECT MODAL
+     ════════════════════════════════════════════════════════════ -->
+<div class="admin-confirm-overlay"
+     id="confirmOverlay"
+     style="display:none;"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="confirmTitle">
+  <div class="admin-confirm-box">
+    <div class="admin-confirm-icon">⚠️</div>
+    <h3 id="confirmTitle">تأكيد الرفض</h3>
+    <p id="confirmMsg">
+      هل تريد رفض هذا البلاغ؟ سيتم تصنيفه كمكرر أو غير صالح.
+    </p>
+    <div class="admin-confirm-actions">
+      <button class="admin-confirm-cancel" id="confirmCancel">إلغاء</button>
+      <button class="admin-confirm-proceed" id="confirmProceed">🚫 تأكيد الرفض</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     IMAGE LIGHTBOX
+     ════════════════════════════════════════════════════════════ -->
+<div class="admin-lightbox"
+     id="adminLightbox"
+     style="display:none;"
+     role="dialog"
+     aria-modal="true"
+     aria-label="عرض الصورة بحجم كبير">
+  <button class="admin-lightbox-close" id="lightboxClose" aria-label="إغلاق الصورة">✕</button>
+  <img src="" alt="صورة البلاغ" id="lightboxImg">
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     DESCRIPTION EXPAND MODAL
+     ════════════════════════════════════════════════════════════ -->
+<div class="admin-confirm-overlay"
+     id="descOverlay"
+     style="display:none;"
+     role="dialog"
+     aria-modal="true"
+     aria-label="الوصف الكامل للبلاغ">
+  <div class="admin-confirm-box" style="max-width:500px;text-align:right;">
+    <h3 style="margin-bottom:0.85rem;">الوصف الكامل</h3>
+    <p id="descContent"
+       style="font-size:0.9rem;line-height:1.9;color:var(--text);
+              margin-bottom:1.25rem;max-height:55vh;overflow-y:auto;
+              white-space:pre-wrap;word-break:break-word;"></p>
+    <div class="admin-confirm-actions">
+      <button class="admin-confirm-cancel" id="descClose" style="width:100%;">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     CLIENT-SIDE LOGIC
+     Search · Pagination · Confirm · Lightbox · Loading states
+     ════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+
+  /* ── State ──────────────────────────────────────────────── */
+  var perPage     = 25;
+  var currentPage = 1;
+
+  var allRows  = Array.prototype.slice.call(document.querySelectorAll('.obs-row'));
+  var allCards = Array.prototype.slice.call(document.querySelectorAll('.obs-card'));
+  var visibleRows  = allRows.slice();
+  var visibleCards = allCards.slice();
+
+  /* ── Search ─────────────────────────────────────────────── */
+  var searchEl = document.getElementById('adminSearch');
+  if (searchEl) {
+    searchEl.addEventListener('input', function () {
+      var q = this.value.trim().toLowerCase();
+      currentPage = 1;
+      if (!q) {
+        visibleRows  = allRows.slice();
+        visibleCards = allCards.slice();
+      } else {
+        visibleRows  = allRows.filter(function (r) {
+          return r.getAttribute('data-searchable').indexOf(q) !== -1;
+        });
+        visibleCards = allCards.filter(function (c) {
+          return c.getAttribute('data-searchable').indexOf(q) !== -1;
+        });
+      }
+      renderPage();
+    });
+  }
+
+  /* ── Per-page selector ──────────────────────────────────── */
+  var perPageEl = document.getElementById('adminPerPage');
+  if (perPageEl) {
+    perPageEl.addEventListener('change', function () {
+      perPage = parseInt(this.value, 10) || 25;
+      currentPage = 1;
+      renderPage();
+    });
+  }
+
+  /* ── Render ─────────────────────────────────────────────── */
+  function renderPage() {
+    var start   = (currentPage - 1) * perPage;
+    var end     = start + perPage;
+    var total   = visibleRows.length;
+    var noRes   = document.getElementById('noResults');
+
+    /* Hide everything first */
+    allRows.forEach(function (r)  { r.style.display = 'none'; });
+    allCards.forEach(function (c) { c.style.display = 'none'; });
+
+    if (total === 0) {
+      if (noRes) noRes.style.display = '';
+      renderPagination(0);
+      return;
+    }
+    if (noRes) noRes.style.display = 'none';
+
+    /* Show current page slice */
+    visibleRows.slice(start, end).forEach(function (r)  { r.style.display = ''; });
+    visibleCards.slice(start, end).forEach(function (c) { c.style.display = ''; });
+
+    renderPagination(total);
+  }
+
+  /* ── Pagination ─────────────────────────────────────────── */
+  function renderPagination(total) {
+    var infoEl  = document.getElementById('paginationInfo');
+    var ctrlEl  = document.getElementById('paginationControls');
+    if (!infoEl || !ctrlEl) return;
+
+    var totalPages = Math.max(1, Math.ceil(total / perPage));
+    var rangeStart = total > 0 ? (currentPage - 1) * perPage + 1 : 0;
+    var rangeEnd   = Math.min(currentPage * perPage, total);
+
+    infoEl.textContent = total > 0
+      ? 'عرض ' + rangeStart + ' – ' + rangeEnd + ' من ' + total + ' بلاغ'
+      : 'لا توجد نتائج';
+
+    ctrlEl.innerHTML = '';
+    if (totalPages <= 1) return;
+
+    /* Prev */
+    ctrlEl.appendChild(mkBtn('‹', currentPage === 1, function () {
+      if (currentPage > 1) { currentPage--; renderPage(); scrollToTop(); }
+    }));
+
+    /* Page numbers with ellipsis */
+    pageRange(currentPage, totalPages).forEach(function (p) {
+      if (p === '…') {
+        var el = document.createElement('span');
+        el.textContent = '…';
+        el.style.cssText = 'padding:0 0.3rem;color:var(--text-muted);line-height:36px;font-size:0.85rem;';
+        ctrlEl.appendChild(el);
+      } else {
+        var btn = mkBtn(String(p), false, (function (pg) {
+          return function () { currentPage = pg; renderPage(); scrollToTop(); };
+        }(p)));
+        if (p === currentPage) btn.classList.add('active');
+        ctrlEl.appendChild(btn);
+      }
+    });
+
+    /* Next */
+    ctrlEl.appendChild(mkBtn('›', currentPage === totalPages, function () {
+      if (currentPage < totalPages) { currentPage++; renderPage(); scrollToTop(); }
+    }));
+  }
+
+  function mkBtn(label, disabled, onClick) {
+    var btn = document.createElement('button');
+    btn.className = 'apg-btn';
+    btn.textContent = label;
+    btn.disabled = !!disabled;
+    if (!disabled) btn.addEventListener('click', onClick);
+    return btn;
+  }
+
+  function pageRange(cur, total) {
+    if (total <= 7) {
+      var arr = [];
+      for (var i = 1; i <= total; i++) arr.push(i);
+      return arr;
+    }
+    var pages = [1];
+    if (cur > 3) pages.push('…');
+    var lo = Math.max(2, cur - 1);
+    var hi = Math.min(total - 1, cur + 1);
+    for (var j = lo; j <= hi; j++) pages.push(j);
+    if (cur < total - 2) pages.push('…');
+    pages.push(total);
+    return pages;
+  }
+
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* ── Initial render ─────────────────────────────────────── */
+  renderPage();
+
+  /* ── Reject confirmation ────────────────────────────────── */
+  var confirmOverlay  = document.getElementById('confirmOverlay');
+  var confirmCancel   = document.getElementById('confirmCancel');
+  var confirmProceed  = document.getElementById('confirmProceed');
+  var confirmMsg      = document.getElementById('confirmMsg');
+  var pendingRejectForm = null;
+
+  window.confirmReject = function (form, code) {
+    pendingRejectForm = form;
+    if (confirmMsg) {
+      confirmMsg.textContent =
+        'هل تريد رفض البلاغ ' + code + '؟ سيُصنَّف كمكرر أو غير صالح ولن يظهر على الخريطة.';
+    }
+    if (confirmOverlay) {
+      confirmOverlay.style.display = 'flex';
+      if (confirmCancel) confirmCancel.focus();
+    }
+  };
+
+  if (confirmCancel) {
+    confirmCancel.addEventListener('click', function () {
+      if (confirmOverlay) confirmOverlay.style.display = 'none';
+      pendingRejectForm = null;
+    });
+  }
+
+  if (confirmProceed) {
+    confirmProceed.addEventListener('click', function () {
+      if (pendingRejectForm) {
+        confirmProceed.disabled = true;
+        confirmProceed.textContent = 'جارٍ الرفض…';
+        pendingRejectForm.submit();
+      }
+      if (confirmOverlay) confirmOverlay.style.display = 'none';
+    });
+  }
+
+  if (confirmOverlay) {
+    confirmOverlay.addEventListener('click', function (e) {
+      if (e.target === confirmOverlay) {
+        confirmOverlay.style.display = 'none';
+        pendingRejectForm = null;
+      }
+    });
+  }
+
+  /* ── Image lightbox ─────────────────────────────────────── */
+  var lightboxEl    = document.getElementById('adminLightbox');
+  var lightboxImg   = document.getElementById('lightboxImg');
+  var lightboxClose = document.getElementById('lightboxClose');
+
+  window.openLightbox = function (src) {
+    if (!lightboxEl || !lightboxImg) return;
+    lightboxImg.src = src;
+    lightboxEl.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    if (lightboxClose) lightboxClose.focus();
+  };
+
+  function closeLightbox() {
+    if (lightboxEl) lightboxEl.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
+  if (lightboxEl) {
+    lightboxEl.addEventListener('click', function (e) {
+      if (e.target === lightboxEl) closeLightbox();
+    });
+  }
+
+  /* ── Description expand ─────────────────────────────────── */
+  var descOverlay = document.getElementById('descOverlay');
+  var descContent = document.getElementById('descContent');
+  var descClose   = document.getElementById('descClose');
+
+  window.showDesc = function (text) {
+    if (!descOverlay || !descContent) return;
+    descContent.textContent = text;
+    descOverlay.style.display = 'flex';
+    if (descClose) descClose.focus();
+  };
+
+  if (descClose) {
+    descClose.addEventListener('click', function () {
+      if (descOverlay) descOverlay.style.display = 'none';
+    });
+  }
+  if (descOverlay) {
+    descOverlay.addEventListener('click', function (e) {
+      if (e.target === descOverlay) descOverlay.style.display = 'none';
+    });
+  }
+
+  /* ── Loading state on form submit (prevent double-click) ── */
+  var actionForms = document.querySelectorAll('.action-form');
+  actionForms.forEach(function (form) {
+    form.addEventListener('submit', function () {
+      var btn = form.querySelector('button[type="submit"]');
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add('is-loading');
+        btn.textContent = 'جارٍ…';
+      }
+    });
+  });
+
+  /* ── Keyboard accessibility (Escape closes all modals) ─── */
+  document.addEventListener('keydown', function (e) {
+    var key = e.key || e.keyCode;
+    if (key === 'Escape' || key === 27) {
+      if (lightboxEl && lightboxEl.style.display !== 'none') {
+        closeLightbox();
+      } else if (confirmOverlay && confirmOverlay.style.display !== 'none') {
+        confirmOverlay.style.display = 'none';
+        pendingRejectForm = null;
+      } else if (descOverlay && descOverlay.style.display !== 'none') {
+        descOverlay.style.display = 'none';
+      }
+    }
+  });
+
+})();
+</script>
+
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{% if get_locale() == 'ar' %}تواصل معنا{% else %}Contact{% endif %} — Marine Waste Tracker{% endblock %}
+{% block content %}
+<div class="prose-page" style="max-width:580px;">
+  <h1>{% if get_locale() == 'ar' %}تواصل معنا{% else %}Contact{% endif %}</h1>
+  <p class="prose-subtitle">{% if get_locale() == 'ar' %}لأي استفسار أو اقتراح أو شراكة{% else %}Questions, suggestions, or partnerships{% endif %}</p>
+  <div class="prose-section">
+    <h2>✉️ {% if get_locale() == 'ar' %}البريد الإلكتروني{% else %}Email{% endif %}</h2>
+    <p><a href="mailto:maroua.benzaoui@enssmal.edu.com">maroua.benzaoui@enssmal.edu.com</a></p>
+  </div>
+  <div class="prose-section">
+    <h2>🐛 {% if get_locale() == 'ar' %}الإبلاغ عن مشكلة{% else %}Report an issue{% endif %}</h2>
+    <p>{% if get_locale() == 'ar' %}راسلنا بوصف المشكلة والصفحة التي واجهتها فيها.{% else %}Email us with a description and the page where the issue occurred.{% endif %}</p>
+  </div>
+</div>
+{% endblock %}

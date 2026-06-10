@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% block title %}{% if get_locale() == 'ar' %}البيانات{% else %}Data{% endif %} — Marine Waste Tracker{% endblock %}
+
+{% block content %}
+<div class="prose-page">
+
+  <h1>
+    {% if get_locale() == 'ar' %}بيانات مفتوحة{% else %}Open Data{% endif %}
+  </h1>
+  <p class="prose-subtitle">
+    {% if get_locale() == 'ar' %}
+      بيانات ملاحظات النفايات البحرية متاحة للعموم تحت رخصة CC BY 4.0
+    {% else %}
+      Marine waste observation data, publicly available under CC BY 4.0
+    {% endif %}
+  </p>
+
+  <!-- Live stats strip -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;margin-bottom:1rem;">
+    <div style="background:var(--surface);padding:1.1rem;text-align:center;">
+      <span style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--cyan);display:block;" id="data-total">—</span>
+      <span style="font-size:0.73rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;font-weight:600;">
+        {% if get_locale() == 'ar' %}إجمالي الملاحظات{% else %}Total Observations{% endif %}
+      </span>
+    </div>
+    <div style="background:var(--surface);padding:1.1rem;text-align:center;">
+      <span style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--cyan);display:block;" id="data-categories">12</span>
+      <span style="font-size:0.73rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;font-weight:600;">
+        {% if get_locale() == 'ar' %}فئات MSFD{% else %}MSFD Categories{% endif %}
+      </span>
+    </div>
+    <div style="background:var(--surface);padding:1.1rem;text-align:center;">
+      <span style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--teal);display:block;">CC BY 4.0</span>
+      <span style="font-size:0.73rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;font-weight:600;">
+        {% if get_locale() == 'ar' %}الترخيص{% else %}License{% endif %}
+      </span>
+    </div>
+  </div>
+
+  <!-- Download section -->
+  <div class="prose-section">
+    <h2>{% if get_locale() == 'ar' %}⬇️ تنزيل البيانات{% else %}⬇️ Download Dataset{% endif %}</h2>
+
+    <div class="download-strip">
+      <div>
+        <strong style="color:var(--text);">
+          {% if get_locale() == 'ar' %}جميع الملاحظات (CSV){% else %}All observations (CSV){% endif %}
+        </strong>
+        <p>
+          {% if get_locale() == 'ar' %}
+            جميع الملاحظات الموثقة بدون تصفية
+          {% else %}
+            All verified and pending observations, unfiltered
+          {% endif %}
+        </p>
+      </div>
+      <a href="{{ url_for('api_export_csv') }}" class="btn-primary" download>
+        ⬇️ {% if get_locale() == 'ar' %}تنزيل CSV{% else %}Download CSV{% endif %}
+      </a>
+    </div>
+
+    <!-- Filtered download -->
+    <div class="download-strip" style="flex-direction:column;align-items:flex-start;">
+      <strong style="color:var(--text);margin-bottom:0.65rem;">
+        {% if get_locale() == 'ar' %}تنزيل مُصفَّى{% else %}Filtered download{% endif %}
+      </strong>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-end;width:100%;">
+        <div>
+          <label class="form-label" for="dl-cat" style="font-size:0.72rem;">
+            {% if get_locale() == 'ar' %}الفئة{% else %}Category{% endif %}
+          </label>
+          <select id="dl-cat" class="map-filter">
+            <option value="">{% if get_locale() == 'ar' %}الكل{% else %}All{% endif %}</option>
+            {% for key, cat in waste_categories.items() %}
+              <option value="{{ key }}">{{ cat.emoji }} {{ cat.label_ar if get_locale() == 'ar' else cat.label_en }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label" for="dl-sev" style="font-size:0.72rem;">
+            {% if get_locale() == 'ar' %}الخطورة{% else %}Severity{% endif %}
+          </label>
+          <select id="dl-sev" class="map-filter">
+            <option value="">{% if get_locale() == 'ar' %}الكل{% else %}All{% endif %}</option>
+            {% for key, sev in severities.items() %}
+              <option value="{{ key }}">{{ sev.label_ar if get_locale() == 'ar' else sev.label_en }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label" style="font-size:0.72rem;">
+            {% if get_locale() == 'ar' %}من{% else %}From{% endif %}
+          </label>
+          <input type="date" id="dl-from" class="map-date-input">
+        </div>
+        <div>
+          <label class="form-label" style="font-size:0.72rem;">
+            {% if get_locale() == 'ar' %}إلى{% else %}To{% endif %}
+          </label>
+          <input type="date" id="dl-to" class="map-date-input">
+        </div>
+        <button class="btn-secondary" id="btnFilteredDownload">
+          ⬇️ {% if get_locale() == 'ar' %}تنزيل مُصفَّى{% else %}Download filtered{% endif %}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Column documentation -->
+  <div class="prose-section">
+    <h2>{% if get_locale() == 'ar' %}📋 توثيق الأعمدة{% else %}📋 Column Documentation{% endif %}</h2>
+    <p style="margin-bottom:0.75rem;">
+      {% if get_locale() == 'ar' %}
+        يحتوي ملف CSV على الأعمدة التالية:
+      {% else %}
+        The CSV file contains the following columns:
+      {% endif %}
+    </p>
+    <div style="overflow-x:auto;">
+      <table class="column-doc-table">
+        <thead>
+          <tr>
+            <th>{% if get_locale() == 'ar' %}العمود{% else %}Column{% endif %}</th>
+            <th>{% if get_locale() == 'ar' %}النوع{% else %}Type{% endif %}</th>
+            <th>{% if get_locale() == 'ar' %}الوصف{% else %}Description{% endif %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for col, typ, desc_en, desc_ar in [
+            ('report_code',        'string',   'Human-readable ID, e.g. MWT-2025-0042',                    'رمز التقرير، مثل MWT-2025-0042'),
+            ('created_at',         'ISO 8601', 'UTC timestamp of submission',                              'تاريخ الإرسال بتوقيت UTC'),
+            ('latitude',           'float',    'WGS84 decimal degrees',                                    'خط العرض (درجات عشرية WGS84)'),
+            ('longitude',          'float',    'WGS84 decimal degrees',                                    'خط الطول (درجات عشرية WGS84)'),
+            ('location_name',      'string',   'Optional free-text location name',                         'اسم الموقع (اختياري)'),
+            ('observer_type',      'enum',     'individual / researcher / ngo / port_officer / fisherman / diver', 'نوع المُبلِّغ'),
+            ('waste_category',     'enum',     'MSFD category key (12 values)',                            'فئة النفايات (MSFD، 12 قيمة)'),
+            ('waste_subcategory',  'string',   'Optional free-text subcategory',                           'الفئة الفرعية (اختياري)'),
+            ('quantity_estimate',  'enum',     'trace / low / medium / high / very_high / widespread',     'تقدير الكمية'),
+            ('quantity_unit',      'enum',     'pieces / kg / m2 / bags',                                  'وحدة الكمية'),
+            ('severity',           'enum',     'low / medium / high / critical',                           'درجة الخطورة'),
+            ('environment_type',   'enum',     'beach / port / open_water / rivermouth / coastal_cliff / seabed', 'نوع البيئة'),
+            ('description',        'string',   'Free-text description (max 500 chars)',                    'وصف نصي (500 حرف كحد أقصى)'),
+            ('weather_conditions', 'enum',     'calm / windy / rainy',                                    'حالة الطقس'),
+            ('cleanup_possible',   'enum',     'yes / no / already_cleaned',                              'إمكانية التنظيف'),
+            ('verified',           'boolean',  'True if reviewed and approved by a moderator',            'تم التحقق من الملاحظة'),
+            ('status',             'enum',     'pending / verified / resolved / duplicate',               'حالة الملاحظة'),
+            ('source',             'enum',     'web / mobile / api',                                      'مصدر الإرسال'),
+          ] %}
+            <tr>
+              <td>{{ col }}</td>
+              <td style="color:var(--text-muted);font-size:0.78rem;white-space:nowrap;">{{ typ }}</td>
+              <td style="color:var(--text-muted);">{{ desc_ar if get_locale() == 'ar' else desc_en }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- License -->
+  <div class="prose-section">
+    <h2>{% if get_locale() == 'ar' %}⚖️ الترخيص{% else %}⚖️ License{% endif %}</h2>
+    <p>
+      {% if get_locale() == 'ar' %}
+        جميع البيانات المتاحة للتنزيل مرخصة تحت
+        <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons Attribution 4.0 International (CC BY 4.0)</a>.
+        يمكنك مشاركة البيانات وتعديلها لأي غرض، بشرط الإشارة إلى المصدر.
+      {% else %}
+        All downloadable data is licensed under
+        <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons Attribution 4.0 International (CC BY 4.0)</a>.
+        You may share and adapt the data for any purpose, provided you give appropriate credit.
+      {% endif %}
+    </p>
+    <p style="margin-top:0.5rem;font-size:0.85rem;color:var(--text-muted);">
+      {% if get_locale() == 'ar' %}
+        الإشارة المقترحة: <em>Marine Waste Tracker (2025). بيانات نفايات البحر المتوسط. CC BY 4.0.</em>
+      {% else %}
+        Suggested citation: <em>Marine Waste Tracker (2025). Mediterranean marine litter observations. CC BY 4.0.</em>
+      {% endif %}
+    </p>
+  </div>
+
+  <!-- API note -->
+  <div class="prose-section">
+    <h2>{% if get_locale() == 'ar' %}🔌 الوصول عبر API{% else %}🔌 API Access{% endif %}</h2>
+    <p>
+      {% if get_locale() == 'ar' %}
+        يمكن الوصول إلى البيانات برمجياً عبر نقاط النهاية التالية:
+      {% else %}
+        Data is also accessible programmatically via these endpoints:
+      {% endif %}
+    </p>
+    <ul style="margin-top:0.5rem;">
+      <li><code style="color:var(--cyan);">GET /api/observations</code> — {% if get_locale() == 'ar' %}قائمة مُصفَّية ومُقسَّمة{% else %}filtered, paginated list{% endif %}</li>
+      <li><code style="color:var(--cyan);">GET /api/observations/&lt;id&gt;</code> — {% if get_locale() == 'ar' %}ملاحظة واحدة{% else %}single observation{% endif %}</li>
+      <li><code style="color:var(--cyan);">GET /api/stats</code> — {% if get_locale() == 'ar' %}إحصائيات مجمّعة{% else %}aggregated statistics{% endif %}</li>
+      <li><code style="color:var(--cyan);">GET /api/export/csv</code> — {% if get_locale() == 'ar' %}تصدير CSV{% else %}CSV export{% endif %}</li>
+      <li><code style="color:var(--cyan);">GET /api/heatmap</code> — {% if get_locale() == 'ar' %}نقاط خريطة الحرارة{% else %}heatmap points{% endif %}</li>
+    </ul>
+    <p style="margin-top:0.65rem;font-size:0.85rem;color:var(--text-muted);">
+      {% if get_locale() == 'ar' %}
+        جميع نقاط النهاية تعيد JSON. لا تتطلب مصادقة للقراءة.
+      {% else %}
+        All endpoints return JSON. No authentication required for read access.
+      {% endif %}
+    </p>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Load total count
+    fetch('/api/stats').then(function (r) { return r.json(); }).then(function (d) {
+      var el = document.getElementById('data-total');
+      if (el) el.textContent = d.total ?? '—';
+    }).catch(function () {});
+
+    // Filtered download button
+    document.getElementById('btnFilteredDownload')?.addEventListener('click', function () {
+      var cat  = document.getElementById('dl-cat')?.value || '';
+      var sev  = document.getElementById('dl-sev')?.value || '';
+      var from = document.getElementById('dl-from')?.value || '';
+      var to   = document.getElementById('dl-to')?.value   || '';
+      var url  = '/api/export/csv?';
+      if (cat)  url += 'category=' + encodeURIComponent(cat) + '&';
+      if (sev)  url += 'severity=' + encodeURIComponent(sev) + '&';
+      if (from) url += 'from='     + encodeURIComponent(from) + '&';
+      if (to)   url += 'to='       + encodeURIComponent(to);
+      window.location.href = url;
+    });
+  });
+</script>
+{% endblock %}

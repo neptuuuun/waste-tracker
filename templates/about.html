@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}{% if get_locale() == 'ar' %}حول المشروع{% else %}About{% endif %} — Marine Waste Tracker{% endblock %}
+
+{% block content %}
+<div class="prose-page">
+
+  <h1>
+    {% if get_locale() == 'ar' %}حول Marine Waste Tracker{% else %}About Marine Waste Tracker{% endif %}
+  </h1>
+  <p class="prose-subtitle">
+    {% if get_locale() == 'ar' %}
+      منصة مجتمعية علمية لرصد نفايات البحر الأبيض المتوسط
+    {% else %}
+      A citizen-science platform for Mediterranean marine litter monitoring
+    {% endif %}
+  </p>
+
+  <!-- Mission -->
+  <div class="prose-section">
+    <h2>{% if get_locale() == 'ar' %}🎯 المهمة{% else %}🎯 Mission{% endif %}</h2>
+    <p>
+      {% if get_locale() == 'ar' %}
+        يهدف Marine Waste Tracker إلى تمكين المواطنين والباحثين والمنظمات البيئية من الإبلاغ عن النفايات البحرية
+        وتوثيقها علمياً وفق معايير MSFD/OSPAR، مما يتيح بناء قاعدة بيانات مفتوحة حقيقية تدعم اتخاذ القرار البيئي
+        في منطقة البحر الأبيض المتوسط.
+      {% else %}
+        Marine Waste Tracker enables citizens, researchers, and environmental organisations to report and
+        scientifically document marine litter using MSFD/OSPAR standard categories, building an open
+        dataset that supports environmental decision-making across the Mediterranean basin.
+      {% endif %}
+    </p>
+  </div>
+
+  <!-- Who can use it -->
+  <div class="prose-section">
+    <h2>{% if get_locale() == 'ar' %}👥 من يمكنه الاستخدام؟{% else %}👥 Who can use it?{% endif %}</h2>
+    <ul>
+      <li>
+        <strong>{% if get_locale() == 'ar' %}المواطنون{% else %}Citizens{% endif %}</strong> —
+        {% if get_locale() == 'ar' %}أبلغ عن أي نفايات تراها على الشاطئ أو في البحر{% else %}Report any litter you see at the beach or on the water{% endif %}
+      </li>
+      <li>
+        <strong>{% if get_locale() == 'ar' %}الباحثون{% else %}Researchers{% endif %}</strong> —
+        {% if get_locale() == 'ar' %}استخدم فئات MSFD القياسية وصدّر البيانات بصيغة CSV{% else %}Use MSFD standard categories and export data as CSV{% endif %}
+      </li>
+      <li>
+        <strong>{% if get_locale() == 'ar' %}المنظمات غير الحكومية{% else %}NGOs{% endif %}</strong> —
+        {% if get_locale() == 'ar' %}دعّم حملات التنظيف بتوثيق المواقع وتتبع التحسن{% else %}Document cleanup sites and track improvement over time{% endif %}
+      </li>
+      <li>
+        <strong>{% if get_locale() == 'ar' %}ضباط الموانئ والغواصون{% else %}Port officers & divers{% endif %}</strong> —
+        {% if get_locale() == 'ar' %}أبلغ عن التلوث في المناطق غير الساحلية{% else %}Report pollution in non-coastal areas{% endif %}
+      </li>
+    </ul>
+  </div>
+
+  <!-- Methodology -->
+  <div class="prose-section">
+    <h2>{% if get_locale() == 'ar' %}🔬 المنهجية{% else %}🔬 Methodology{% endif %}</h2>
+    <p>
+      {% if get_locale() == 'ar' %}
+        تعتمد المنصة على تصنيف MSFD (إطار استراتيجية البيئة البحرية للاتحاد الأوروبي) الذي يحدد 12 فئة رئيسية
+        من النفايات البحرية، مما يضمن توافق البيانات مع المعايير الدولية للرصد البيئي.
+        تمر كل ملاحظة بمرحلة مراجعة إدارية قبل ظهورها على الخريطة العامة.
+      {% else %}
+        The platform uses the MSFD (EU Marine Strategy Framework Directive) 12-category waste classification,
+        ensuring data compatibility with international marine monitoring standards.
+        Every observation is reviewed by a moderator before appearing on the public map.
+      {% endif %}
+    </p>
+    <ul style="margin-top:0.5rem;">
+      <li>{% if get_locale() == 'ar' %}12 فئة MSFD قياسية{% else %}12 MSFD standard waste categories{% endif %}</li>
+      <li>{% if get_locale() == 'ar' %}6 مستويات تقدير للكمية{% else %}6 quantity estimate levels{% endif %}</li>
+      <li>{% if get_locale() == 'ar' %}4 درجات خطورة (منخفض — حرج){% else %}4 severity levels (low — critical){% endif %}</li>
+      <li>{% if get_locale() == 'ar' %}6 أنواع بيئية{% else %}6 environment types{% endif %}</li>
+      <li>{% if get_locale() == 'ar' %}إحداثيات GPS دقيقة{% else %}GPS-accurate coordinates{% endif %}</li>
+    </ul>
+  </div>
+
+  <!-- Data -->
+  <div class="prose-section">
+    <h2>{% if get_locale() == 'ar' %}📊 البيانات والترخيص{% else %}📊 Data & License{% endif %}</h2>
+    <p>
+      {% if get_locale() == 'ar' %}
+        جميع البيانات الموثقة مفتوحة المصدر تحت رخصة
+        <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons CC BY 4.0</a>.
+        يمكنك تنزيل مجموعة البيانات الكاملة بصيغة CSV من صفحة البيانات.
+      {% else %}
+        All verified data is released as open data under
+        <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons CC BY 4.0</a>.
+        Download the full dataset as CSV from the Data page.
+      {% endif %}
+    </p>
+    <div style="margin-top:0.85rem;">
+      <a href="{{ url_for('data_page') }}" class="btn-secondary">
+        {% if get_locale() == 'ar' %}⬇️ تنزيل البيانات{% else %}⬇️ Download Dataset{% endif %}
+      </a>
+    </div>
+  </div>
+
+  <!-- Contact -->
+  <div class="prose-section">
+    <h2>{% if get_locale() == 'ar' %}✉️ التواصل{% else %}✉️ Contact{% endif %}</h2>
+    <p>
+      {% if get_locale() == 'ar' %}
+        لأي استفسار أو شراكة أو مساهمة، يمكنك التواصل عبر:
+        <a href="mailto:maroua.benzaoui@enssmal.edu.com">maroua.benzaoui@enssmal.edu.com</a>
+      {% else %}
+        For enquiries, partnerships, or contributions, reach out at
+        <a href="mailto:maroua.benzaoui@enssmal.edu.com">maroua.benzaoui@enssmal.edu.com</a>
+      {% endif %}
+    </p>
+    <p style="margin-top:0.5rem;">
+      {% if get_locale() == 'ar' %}
+        هذه المنصة مبنية بواسطة <strong>Maroua Benzaoui</strong> 
+      {% else %}
+        This platform is built by <strong>Maroua Benzaoui</strong> 
+      {% endif %}
+    </p>
+  </div>
+
+</div>
+{% endblock %}
