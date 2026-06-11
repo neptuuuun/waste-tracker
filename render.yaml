@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: marine-waste-tracker
+    runtime: python
+    # Repo root holds requirements.txt and server.py — keep this blank/"."
+    rootDir: .
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn server:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_ENV
+        value: production
+      # Set DATABASE_URL to a managed Postgres instance for persistent storage.
+      # Without it the app falls back to ephemeral SQLite, which is wiped on every deploy.
